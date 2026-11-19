@@ -46,6 +46,9 @@ BLUE, GREY, OK_COL, ZERO_COL = "#2a78d6", "#b4b2a9", "#1baf7a", "#d85a30"
 CAUSES = [("leaf_uprooted", "#2a78d6"), ("route_blocked", "#eb6834"), ("plant_hit", "#6250d6"), ("fruit_dropped", "#eda100"),
           ("fruit_hit", "#e87ba4"), ("fruit_knocked_off", "#e87ba4"), ("timeout", "#008300"), ("grasp_miss", "#e34948")]
 CAUSE_COL = dict(CAUSES)
+UNLOGGED = "#a8dcc6"            # pale success green: "no failure logged", but the row's success rate shows an incomplete episode
+VAGUE_NOTE = (" In the pale cells no failure was logged although the success rate of that checkpoint shows an incomplete episode (an "
+              "episode that only skipped a fruit is logged without a failure), so they are not counted as successes.")
 COMPONENT_NAMES = {"cross_track": "Cross-track", "leaf_damage": "Leaf damage", "fail": "Failure penalty"}
 
 
@@ -74,8 +77,13 @@ def num(x, default=np.nan) -> float:
 def read_csv(path: Path) -> list[dict]:
     if not path.exists():
         return []
-    with open(path, newline="", encoding="utf-8") as f:
-        return list(csv.DictReader(f))
+    # tolerant of logs that were re-aligned in an editor (padding spaces around every value)
+    with open(path, newline="", encoding="utf-8-sig") as f:
+        rows = list(csv.reader(f, skipinitialspace=True))
+    if not rows:
+        return []
+    head = [h.strip() for h in rows[0]]
+    return [{h: v.strip() for h, v in zip(head, r)} for r in rows[1:] if any(c.strip() for c in r) and r[0].strip() != head[0]]
 
 
 def roll(y: np.ndarray, w: int, fn) -> np.ndarray:
@@ -89,6 +97,16 @@ def roll(y: np.ndarray, w: int, fn) -> np.ndarray:
     return out
 
 
+def last_run(rows: list[dict]) -> tuple[list[dict], int]:
+    """A training that was started again appends to the same CSV: the step counter jumps back. Only the rows of the
+    LAST run are used; returns (rows, number of rows of earlier runs that were left out)."""
+    start = 0
+    for i in range(1, len(rows)):
+        if num(rows[i].get("timesteps"), 0) < num(rows[i - 1].get("timesteps"), 0):
+            start = i
+    return rows[start:], start
+
+
 def bin_width(span: float, max_bins: int = 12) -> float:
     for e in range(0, 9):
         for m in (1, 2, 2.5, 5):
@@ -100,6 +118,7 @@ def bin_width(span: float, max_bins: int = 12) -> float:
 def train_stats(rows: list[dict]) -> dict | None:
     if not rows:
         return None
+    rows, dropped = last_run(rows)
     rows = sorted(rows, key=lambda r: num(r.get("timesteps"), 0))
     n = len(rows)
     steps = np.array([num(r.get("timesteps"), 0) for r in rows])
@@ -146,7 +165,7 @@ def train_stats(rows: list[dict]) -> dict | None:
     keys = sorted(set(comp_ok) | set(comp_bad), key=lambda q: -max(abs(float(np.median(comp_ok.get(q, [0])))),
                                                                    abs(float(np.median(comp_bad.get(q, [0]))))))[:9]
     top = fails.most_common(3)
-    return dict(n=n, steps_max=float(steps.max()), envs=len({r.get("env") for r in rows}), n_targets=n_t,
+    return dict(n=n, dropped=dropped, steps_max=float(steps.max()), envs=len({r.get("env") for r in rows}), n_targets=n_t,
                 success=int(ok.sum()), success_pct=100 * ok.mean(), w=w, k=k,
                 first_sr=100 * ok[:k].mean() if k else None, last_sr=100 * ok[-k:].mean() if k else None,
                 first_ret=float(np.nanmedian(ret[:k])) if k else None, last_ret=float(np.nanmedian(ret[-k:])) if k else None,
@@ -166,6 +185,7 @@ def train_stats(rows: list[dict]) -> dict | None:
 def eval_stats(rows: list[dict]) -> dict | None:
     if not rows:
         return None
+    rows, dropped = last_run(rows)
     ref = [r for r in rows if r.get("policy", "sac") == "reference"]
     sac = sorted([r for r in rows if r.get("policy", "sac") != "reference"], key=lambda r: num(r.get("timesteps"), 0))
     ref = ref[0] if ref else None
@@ -174,12 +194,19 @@ def eval_stats(rows: list[dict]) -> dict | None:
     steps = np.array([num(r.get("timesteps"), 0) for r in sac])
     col = lambda key, scale=1.0: np.array([num(r.get(key)) * scale for r in sac])
     sr, fr, rt, spf = col("success_rate", 100), col("fruit_rate", 100), col("mean_return"), col("s_per_fruit")
-    outcome = lambda r: [(e.split("@")[0] or "success", e) for e in (r.get("failures") or "").split("|")]
+    def outcome(r):
+        """(cause, raw entry) per evaluation episode. An empty entry is a success only if the row's success rate agrees:
+        an episode that merely skipped a fruit is logged without a failure, so in such rows empty = "unlogged"."""
+        ents = (r.get("failures") or "").split("|")
+        n_ok = num(r.get("success_rate")) * len(ents)
+        vague = np.isfinite(n_ok) and sum(not e for e in ents) > round(n_ok) + 1e-9
+        return [(e.split("@")[0] or ("unlogged" if vague else "success"), e) for e in ents]
     grid = [outcome(r) for r in sac]
     n_ep = max([len(g) for g in grid] + ([len(outcome(ref))] if ref else [0]))
     seen = Counter(c for g in grid + ([outcome(ref)] if ref else []) for c, _ in g)
-    kinds = [("success", "Success", OK_COL)] + [(c, nice(c), col_) for c, col_ in CAUSES if c in seen]
-    other = sorted(c for c in seen if c != "success" and c not in CAUSE_COL)
+    kinds = [("success", "Success", OK_COL)] + ([("unlogged", "No failure logged (success or a skipped fruit)", UNLOGGED)] if "unlogged" in seen else []) + \
+        [(c, nice(c), col_) for c, col_ in CAUSES if c in seen]
+    other = sorted(c for c in seen if c not in ("success", "unlogged") and c not in CAUSE_COL)
     if other:
         kinds.append(("__other__", f"Other ({len(other)} type{'s' if len(other) != 1 else ''})", GREY))
     kid = {k: i for i, (k, _, _) in enumerate(kinds)}
@@ -193,8 +220,10 @@ def eval_stats(rows: list[dict]) -> dict | None:
     per_ep = []
     for e in range(n_ep):
         cs = [g[e][0] for g in grid if e < len(g)]
-        per_ep.append(dict(ok=sum(c == "success" for c in cs), n=len(cs), fails=Counter(c for c in cs if c != "success").most_common(2)))
-    return dict(n=len(sac), n_ep=n_ep, interval=interval, steps=steps.tolist(), x=[kfmt(s) for s in steps], sr=np.round(sr, 1).tolist(),
+        per_ep.append(dict(ok=sum(c == "success" for c in cs), n=len(cs),
+                           fails=Counter(c for c in cs if c not in ("success", "unlogged")).most_common(2)))
+    vague = sum(any(c == "unlogged" for c, _ in g) for g in grid)
+    return dict(n=len(sac), dropped=dropped, n_ep=n_ep, interval=interval, steps=steps.tolist(), x=[kfmt(s) for s in steps], sr=np.round(sr, 1).tolist(),
                 fr=np.round(fr, 1).tolist(), ret=np.round(rt, 2).tolist(),
                 spf=[None if np.isnan(v) else round(float(v), 1) for v in spf], has_time=bool(np.isfinite(spf).any()),
                 mean_sr=float(np.nanmean(sr)) if len(sr) else float("nan"), mean_fr=float(np.nanmean(fr)) if len(fr) else float("nan"),
@@ -203,7 +232,7 @@ def eval_stats(rows: list[dict]) -> dict | None:
                 best=best, n_best=int(np.sum(np.isclose(sr, best))) if len(sr) else 0,
                 best_ret=float(np.nanmax(rt)) if len(rt) else float("nan"), best_ret_at=kfmt(steps[int(np.nanargmax(rt))]) if len(rt) else "-",
                 kinds=[(lab, c) for _, lab, c in kinds], grid=[[code(c) for c, _ in g] for g in grid],
-                raw=[[e for _, e in g] for g in grid], ref=refv, per_ep=per_ep, counts=seen)
+                raw=[[e for _, e in g] for g in grid], ref=refv, per_ep=per_ep, counts=seen, vague=vague)
 
 
 def verdict(ev: dict | None) -> str | None:
@@ -334,7 +363,7 @@ def eval_html(name: str, e: dict) -> str:
     body += ('<div class="card"><div class="ct">Outcome of each evaluation episode per checkpoint (left = first, right = last)</div>'
              '<div class="lg" id="lg"></div><div class="hm" id="hm"></div><div class="note" style="margin-top:10px">Episode order is read from the '
              'position of each entry in the <code>failures</code> column (separated by “|”; empty = success). The evaluation episodes '
-             'are the same fixed scenes at every checkpoint.' + (' Column “ref” = reference controller alone.' if ref else "") + '</div></div>')
+             'are the same fixed scenes at every checkpoint.' + VAGUE_NOTE * bool(e["vague"]) + (' Column “ref” = reference controller alone.' if ref else "") + '</div></div>')
     n = max(1, e["n"])
     rd = lambda key, lab: f",D({ref[key]:.2f},{n},'{lab}')" if ref and np.isfinite(ref[key]) else ""
     js = f"const T={J(e['x'])},S={J(e['sr'])},FR={J(e['fr'])},R={J(e['ret'])},TM={J(e['spf'])};\n"
@@ -351,14 +380,14 @@ def eval_html(name: str, e: dict) -> str:
                f"spanGaps:true,label:'Time per fruit'}}{rd('spf', 'Reference')}]}},options:O(v=>v.toFixed(1)+' s',{{x:XS(),y:ax({{ticks:{{callback:v=>v+' s'}}}})}})}});\n")
     cols = ([dict(label="ref", g=ref["grid"], raw=ref["raw"])] if ref else []) + \
         [dict(label=x, g=g, raw=r) for x, g, r in zip(e["x"], e["grid"], e["raw"])]
-    js += f"const K={J(e['kinds'])},C={J(cols)},k={e['n_ep']},n=C.length,nr={1 if ref else 0};\n"
+    js += f"const K={J(e['kinds'])},C={J(cols)},k={e['n_ep']},n=C.length,nr={1 if ref else 0},VG={1 if e['vague'] else 0};\n"
     js += ("const cnt=K.map((_,i)=>C.slice(nr).map(c=>c.g).flat().filter(v=>v===i).length);\n"
            "lg.innerHTML=K.map((c,i)=>'<span><i class=\"sq\" style=\"background:'+c[1]+'\"></i>'+c[0]+' \\u00b7 '+cnt[i]+'</span>').join('');\n"
            "hm.style.gridTemplateColumns='90px '+(nr?'minmax(14px,1fr) 6px ':'')+'repeat('+(n-nr)+',minmax(0,1fr)) 110px';\n"
            "let h='';for(let ep=0;ep<k;ep++){h+='<span class=\"rl\">Episode '+(ep+1)+'</span>';let ok=0;for(let c=0;c<n;c++){const v=C[c].g[ep];"
-           "if(v===undefined){h+='<div></div>'}else{if(v===0&&c>=nr)ok++;const why=C[c].raw[ep]||'success';"
+           "if(v===undefined){h+='<div></div>'}else{if(v===0&&c>=nr)ok++;const why=C[c].raw[ep]||(K[v][0]==='Success'?'success':'no failure logged');"
            "h+='<div style=\"height:26px;background:'+K[v][1]+'\" title=\"'+C[c].label+' \\u00b7 episode '+(ep+1)+': '+why.replace('@',' in phase ')+'\"></div>'}"
-           "if(nr&&c===0)h+='<div></div>'}h+='<span class=\"rl\" style=\"padding-left:8px\">success '+ok+'/'+(n-nr)+'</span>'}\n"
+           "if(nr&&c===0)h+='<div></div>'}h+='<span class=\"rl\" style=\"padding-left:8px\">'+(VG?'':'success '+ok+'/'+(n-nr))+'</span>'}\n"
            "h+='<span></span>';for(let c=0;c<n;c++){const show=c<nr||(n-nr)<=14||(c-nr)%Math.ceil((n-nr)/10)===0;"
            "h+='<span class=\"rl\" style=\"text-align:center;font-size:11px;overflow:visible;white-space:nowrap\">'+(show?C[c].label:'')+'</span>';if(nr&&c===0)h+='<span></span>'}"
            "h+='<span></span>';hm.innerHTML=h;\n")
@@ -491,7 +520,8 @@ def eval_png(name: str, e: dict, path: Path):
         a.axvline(0.5, color=CARD, lw=5)
     nr = 1 if ref else 0
     a.set_yticks(range(e["n_ep"]))
-    a.set_yticklabels([f"Episode {i + 1}  ({p['ok']}/{p['n']} ok)" for i, p in enumerate(e["per_ep"])], color=INK2, fontsize=9.5)
+    a.set_yticklabels([f"Episode {i + 1}" + ("" if e["vague"] else f"  ({p['ok']}/{p['n']} ok)") for i, p in enumerate(e["per_ep"])],
+                      color=INK2, fontsize=9.5)
     stepk = max(1, int(np.ceil(e["n"] / 12)))
     ticks = list(range(nr, len(cols), stepk))
     a.set_xticks(([0] if ref else []) + ticks); a.set_xticklabels((["ref"] if ref else []) + [e["x"][i - nr] for i in ticks], color=MUTED, fontsize=9)
@@ -560,8 +590,13 @@ def summary_md(name: str, t: dict | None, e: dict | None, made: list[str]) -> st
             v = verdict(e)
             if v:
                 L += [f"- **SAC vs reference:** {v}"]
-            L += ["- **Per evaluation episode:**"]
-            for i, p in enumerate(e["per_ep"]):
+            if e["vague"]:
+                L += [f"- **Per evaluation episode:** not available. At {e['vague']} of {e['n']} checkpoints the log names fewer failures than "
+                      f"the success rate implies (an episode that only skipped a fruit is logged without a failure), so the episode that "
+                      f"was not completed cannot be identified."]
+            else:
+                L += ["- **Per evaluation episode:**"]
+            for i, p in enumerate([] if e["vague"] else e["per_ep"]):
                 how = "always succeeds" if p["ok"] == p["n"] else "never succeeds" if p["ok"] == 0 else f"succeeds at {p['ok']} of {p['n']} checkpoints"
                 why = "" if not p["fails"] else "; fails with " + " or ".join(f"{nice(c).lower()} ({v})" for c, v in p["fails"])
                 L += [f"  - Episode {i + 1} {how}{why}."]
@@ -570,8 +605,13 @@ def summary_md(name: str, t: dict | None, e: dict | None, made: list[str]) -> st
         L += [""]
     L += ["## Notes / assumptions",
           "- Episode order in the evaluation heat map comes from the position of each entry in the `failures` column (separated by `|`; an empty "
-          "entry means success). The evaluation episodes are fixed scenes (same seeds at every checkpoint).",
+          "entry means success, unless the success rate of that row says otherwise). The evaluation episodes are fixed scenes (same "
+          "seeds at every checkpoint).",
           "- A failure written as `cause@phase` is counted under its cause; the phase is shown in the tooltip of the dashboard."]
+    old = [f"{st['dropped']} row{'s' if st['dropped'] != 1 else ''} of `{f}`" for st, f in ((t, "train_log.csv"), (e, "eval_log.csv")) if st and st["dropped"]]
+    if old:
+        L += [f"- The training was started more than once (the step counter jumps back in the log). Only the last run is shown; "
+              f"left out: {' and '.join(old)}."]
     if t and t["mismatch"]:
         L += [f"- In {t['mismatch']} training episode{'s' if t['mismatch'] != 1 else ''}, `n_placed` does not match `success` exactly, so the "
               f"\"fruits placed\" counts differ slightly from the success count."]
