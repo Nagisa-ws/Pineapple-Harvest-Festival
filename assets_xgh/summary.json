@@ -1,0 +1,642 @@
+{
+ "fruit_1": {
+  "mean_color": [
+   0.8284298601473258,
+   0.7025265481446128,
+   0.16420430924585058
+  ],
+  "top": 0.1770000010728836
+ },
+ "fruit_2": {
+  "mean_color": [
+   0.8303093306288033,
+   0.7044155797260722,
+   0.1648399575480881
+  ],
+  "top": 0.2029999941587448
+ },
+ "fruit_3": {
+  "mean_color": [
+   0.8321415450988766,
+   0.7062341668812289,
+   0.16543900991591257
+  ],
+  "top": 0.1509999930858612
+ },
+ "fruit_4": {
+  "mean_color": [
+   0.8287469150145379,
+   0.7028682200968356,
+   0.16434860492718492
+  ],
+  "top": 0.19900000095367432
+ },
+ "fruit_5": {
+  "mean_color": [
+   0.8308302457312593,
+   0.7049673760824924,
+   0.16501744233510635
+  ],
+  "top": 0.1679999977350235
+ },
+ "crown_1": {
+  "mean_color": [
+   0.0768944361183964,
+   0.2693944361183964,
+   0.08910640689396779
+  ],
+  "top": 0.1376219093799591
+ },
+ "crown_2": {
+  "mean_color": [
+   0.07687586384613583,
+   0.2693656148241854,
+   0.08909269801110407
+  ],
+  "top": 0.12378579378128052
+ },
+ "crown_3": {
+  "mean_color": [
+   0.0769438899631963,
+   0.26947118083712807,
+   0.08914291061069178
+  ],
+  "top": 0.1599392145872116
+ },
+ "crown_4": {
+  "mean_color": [
+   0.07408295437040807,
+   0.26492954303433774,
+   0.08756715848129074
+  ],
+  "top": 0.13430409133434296
+ },
+ "crown_5": {
+  "mean_color": [
+   0.07681567560407537,
+   0.26927221198105816,
+   0.08904827083770271
+  ],
+  "top": 0.11727677285671234
+ },
+ "plant_1": {
+  "name": "plant_1",
+  "kind": 1,
+  "stem_h": 0.18,
+  "n_leaves": 40,
+  "keepout": {
+   "zb": 0.49949999999999994,
+   "zt": 0.8005,
+   "rf": 0.0875,
+   "crown_h": 0.163,
+   "crown_r": 0.076
+  },
+  "static_classes": {
+   "green": 53,
+   "green_dark": 3,
+   "orange": 24
+  },
+  "class_rgb": {
+   "green": [
+    0.23,
+    0.46,
+    0.2
+   ],
+   "green_dark": [
+    0.18,
+    0.37,
+    0.16
+   ],
+   "orange": [
+    0.74,
+    0.41,
+    0.13
+   ]
+  },
+  "n_segments": 80,
+  "mean_color": [
+   0.42288506191950226,
+   0.4958351393189049,
+   0.2653308823529476
+  ],
+  "height": 0.8218301052387067,
+  "spread": 1.268526234515348,
+  "triangles_static": 14016
+ },
+ "plant_2": {
+  "name": "plant_2",
+  "kind": 2,
+  "stem_h": 0.2,
+  "n_leaves": 50,
+  "keepout": {
+   "zb": 0.49949999999999994,
+   "zt": 0.8005,
+   "rf": 0.0875,
+   "crown_h": 0.163,
+   "crown_r": 0.076
+  },
+  "static_classes": {
+   "green": 68,
+   "green_dark": 10,
+   "orange": 22
+  },
+  "class_rgb": {
+   "green": [
+    0.23,
+    0.46,
+    0.2
+   ],
+   "green_dark": [
+    0.18,
+    0.37,
+    0.16
+   ],
+   "orange": [
+    0.74,
+    0.41,
+    0.13
+   ]
+  },
+  "n_segments": 100,
+  "mean_color": [
+   0.39150588235293826,
+   0.4966359133126844,
+   0.26767306501548693
+  ],
+  "height": 0.7080110548756346,
+  "spread": 1.7034971797320735,
+  "triangles_static": 17496
+ },
+ "plant_3": {
+  "name": "plant_3",
+  "kind": 3,
+  "stem_h": 0.16,
+  "n_leaves": 28,
+  "keepout": {
+   "zb": 0.49949999999999994,
+   "zt": 0.8005,
+   "rf": 0.0875,
+   "crown_h": 0.163,
+   "crown_r": 0.076
+  },
+  "static_classes": {
+   "green": 42,
+   "green_dark": 5,
+   "orange": 11
+  },
+  "class_rgb": {
+   "green": [
+    0.23,
+    0.46,
+    0.2
+   ],
+   "green_dark": [
+    0.18,
+    0.37,
+    0.16
+   ],
+   "orange": [
+    0.74,
+    0.41,
+    0.13
+   ]
+  },
+  "n_segments": 58,
+  "mean_color": [
+   0.37264320334875684,
+   0.4983586693104391,
+   0.26922780348094616
+  ],
+  "height": 0.8109232849846864,
+  "spread": 1.6355546735623014,
+  "triangles_static": 9840
+ },
+ "plant_4": {
+  "name": "plant_4",
+  "kind": 4,
+  "stem_h": 0.22,
+  "n_leaves": 70,
+  "keepout": {
+   "zb": 0.49949999999999994,
+   "zt": 0.8005,
+   "rf": 0.0875,
+   "crown_h": 0.163,
+   "crown_r": 0.076
+  },
+  "static_classes": {
+   "green": 100,
+   "green_dark": 4,
+   "orange": 36
+  },
+  "class_rgb": {
+   "green": [
+    0.23,
+    0.46,
+    0.2
+   ],
+   "green_dark": [
+    0.18,
+    0.37,
+    0.16
+   ],
+   "orange": [
+    0.74,
+    0.41,
+    0.13
+   ]
+  },
+  "n_segments": 140,
+  "mean_color": [
+   0.40665789473680236,
+   0.4961919504643062,
+   0.2656068111455164
+  ],
+  "height": 0.7156125198515848,
+  "spread": 1.25197607272082,
+  "triangles_static": 24456
+ },
+ "plant_5": {
+  "name": "plant_5",
+  "kind": 5,
+  "stem_h": 0.18,
+  "n_leaves": 45,
+  "keepout": {
+   "zb": 0.49949999999999994,
+   "zt": 0.8005,
+   "rf": 0.0875,
+   "crown_h": 0.163,
+   "crown_r": 0.076
+  },
+  "static_classes": {
+   "green": 78,
+   "green_dark": 7,
+   "orange": 27
+  },
+  "class_rgb": {
+   "green": [
+    0.23,
+    0.46,
+    0.2
+   ],
+   "green_dark": [
+    0.18,
+    0.37,
+    0.16
+   ],
+   "orange": [
+    0.74,
+    0.41,
+    0.13
+   ]
+  },
+  "n_segments": 112,
+  "mean_color": [
+   0.3809739083774872,
+   0.4964112281172594,
+   0.26804379904756315
+  ],
+  "height": 0.7029602594543687,
+  "spread": 1.5569320361823769,
+  "triangles_static": 15756
+ },
+ "ground": {
+  "vertices": 41676,
+  "triangles": 82500,
+  "z_range": [
+   -0.028305191294303825,
+   0.057332735745955876
+  ],
+  "x": [
+   -3.0,
+   19.0
+  ],
+  "y": [
+   -3.0,
+   3.0
+  ]
+ },
+ "mesh_checks": [
+  {
+   "name": "vehicle/track_guide_teeth_left",
+   "faces": 2536,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.6561514195583596
+  },
+  {
+   "name": "vehicle/track_guide_teeth_right",
+   "faces": 2536,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.6561514195583596
+  },
+  {
+   "name": "vehicle/track_wheels_right",
+   "faces": 20912,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.5062165263963274
+  },
+  {
+   "name": "vehicle/bed",
+   "faces": 632,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.7816455696202531
+  },
+  {
+   "name": "vehicle/basket-v1",
+   "faces": 35556,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.49471256609292386
+  },
+  {
+   "name": "ur10e/base_0",
+   "faces": 2335,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.9781584582441113
+  },
+  {
+   "name": "ur10e/base_1",
+   "faces": 2667,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.7930258717660292
+  },
+  {
+   "name": "ur10e/forearm_0",
+   "faces": 11687,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.7489518268161205
+  },
+  {
+   "name": "ur10e/forearm_1",
+   "faces": 4589,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.5504467204183918
+  },
+  {
+   "name": "ur10e/forearm_2",
+   "faces": 1194,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.5695142378559463
+  },
+  {
+   "name": "ur10e/forearm_3",
+   "faces": 459,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.5816993464052288
+  },
+  {
+   "name": "ur10e/shoulder_0",
+   "faces": 13498,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.7577418876870647
+  },
+  {
+   "name": "ur10e/shoulder_1",
+   "faces": 2230,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.9609865470852018
+  },
+  {
+   "name": "ur10e/shoulder_2",
+   "faces": 14363,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.6296734665459862
+  },
+  {
+   "name": "ur10e/upperarm_0",
+   "faces": 3860,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.6085492227979274
+  },
+  {
+   "name": "ur10e/upperarm_1",
+   "faces": 15283,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.4771968854282536
+  },
+  {
+   "name": "ur10e/upperarm_2",
+   "faces": 21480,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.5635940409683426
+  },
+  {
+   "name": "ur10e/upperarm_3",
+   "faces": 518,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.5926640926640927
+  },
+  {
+   "name": "ur10e/wrist1_0",
+   "faces": 2278,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.5886742756804214
+  },
+  {
+   "name": "ur10e/wrist1_1",
+   "faces": 12787,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.7566278251349027
+  },
+  {
+   "name": "ur10e/wrist1_2",
+   "faces": 988,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.8947368421052632
+  },
+  {
+   "name": "ur10e/wrist2_0",
+   "faces": 3489,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.6090570364001147
+  },
+  {
+   "name": "ur10e/wrist2_1",
+   "faces": 13824,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.7638165509259259
+  },
+  {
+   "name": "ur10e/wrist2_2",
+   "faces": 1110,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.8873873873873874
+  },
+  {
+   "name": "ur10e/wrist3",
+   "faces": 978,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.7566462167689162
+  },
+  {
+   "name": "ur10e/Servo-v1",
+   "faces": 372,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.989247311827957
+  },
+  {
+   "name": "pineapple/fruit_1.stl",
+   "faces": 2500,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.9868
+  },
+  {
+   "name": "pineapple/fruit_1.gltf",
+   "faces": 9000,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.9942222222222222
+  },
+  {
+   "name": "pineapple/fruit_2.stl",
+   "faces": 2500,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.9828
+  },
+  {
+   "name": "pineapple/fruit_2.gltf",
+   "faces": 9000,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.9877777777777778
+  },
+  {
+   "name": "pineapple/fruit_3.stl",
+   "faces": 2500,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.9896
+  },
+  {
+   "name": "pineapple/fruit_3.gltf",
+   "faces": 9000,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.9967777777777778
+  },
+  {
+   "name": "pineapple/fruit_4.stl",
+   "faces": 2500,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.9868
+  },
+  {
+   "name": "pineapple/fruit_4.gltf",
+   "faces": 9000,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.991
+  },
+  {
+   "name": "pineapple/fruit_5.stl",
+   "faces": 2500,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.9888
+  },
+  {
+   "name": "pineapple/fruit_5.gltf",
+   "faces": 9000,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.9946666666666667
+  },
+  {
+   "name": "pineapple/crown_1.stl",
+   "faces": 3000,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.581
+  },
+  {
+   "name": "pineapple/crown_1.gltf",
+   "faces": 11995,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.616340141725719
+  },
+  {
+   "name": "pineapple/crown_2.stl",
+   "faces": 3000,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.58
+  },
+  {
+   "name": "pineapple/crown_2.gltf",
+   "faces": 11995,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.6210921217173823
+  },
+  {
+   "name": "pineapple/crown_3.stl",
+   "faces": 3000,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.5913333333333334
+  },
+  {
+   "name": "pineapple/crown_3.gltf",
+   "faces": 12000,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.6065833333333334
+  },
+  {
+   "name": "pineapple/crown_4.stl",
+   "faces": 3000,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.5516666666666666
+  },
+  {
+   "name": "pineapple/crown_4.gltf",
+   "faces": 11991,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.6062046534901175
+  },
+  {
+   "name": "pineapple/crown_5.stl",
+   "faces": 3000,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.5556666666666666
+  },
+  {
+   "name": "pineapple/crown_5.gltf",
+   "faces": 11994,
+   "degenerate": 0,
+   "nan": false,
+   "outward_frac": 0.6259796564949142
+  }
+ ]
+}

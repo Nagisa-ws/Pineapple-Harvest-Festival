@@ -1,0 +1,25 @@
+{
+ "timesteps": 48000,
+ "success_rate": 1.0,
+ "fruit_rate": 1.0,
+ "mean_return": 339.7393278103476,
+ "s_per_fruit": 40.25616143050056,
+ "failures": [
+  "",
+  ""
+ ],
+ "validation_seeds": [
+  797400,
+  797401
+ ],
+ "reference_baseline": {
+  "success_rate": 0.5,
+  "fruit_rate": 0.875,
+  "mean_return": -241.98621390334517,
+  "s_per_fruit": 51.06177022842845,
+  "failures": [
+   "",
+   ""
+  ]
+ }
+}

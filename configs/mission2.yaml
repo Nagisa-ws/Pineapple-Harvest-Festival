@@ -1,0 +1,17 @@
+# configs/mission2.yaml - Mission 2 = Mission 1 + a neighbour plant at an unknown position (left/right/front/back),
+# slightly farther apart than in version 4 [USER v5]. Priority: the fruit nearest to the robot first; after each fruit
+# the arm returns to the default posture. Training light, evaluation realistic (as Mission 1).
+inherit: mission1
+task:
+  n_plants: 2
+  n_targets: 2
+  max_steps: 7500
+  placement:
+    radius_range: [0.55, 0.78]          # first plant
+    neighbour_distance_range: [0.42, 0.55]   # was 0.30-0.42
+    radius_range_neighbour: [0.45, 0.95]
+train:
+  timesteps: 30000
+  eval_freq: 10000
+  eval_episodes: 6                 # two-plant episodes are ~2x longer than Mission 1
+  eval_seed: 787000

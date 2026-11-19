@@ -1,0 +1,125 @@
+# configs/mission3.yaml - Mission 3 (version 5 = old Missions 3 + 4 merged [USER v5]): end-to-end harvest of a zig-zag
+# double row from the ATEX XGH505H crawler with the UR10e + U-jaw gripper and two crates on the bed.
+#   training   : light scene (mode xgh_light) - primitive shapes, procedural plants, short row segments
+#   evaluation : realistic scene (mode xgh_detail, scripts/eval_xgh.py) - user's meshes, per-leaf articulated plants,
+#                ground mesh, 15 m field (2 x 30 plants, spacing 0.50 m, zig-zag 0.25 m); only THREE plants are
+#                interactive at a time (level of detail, see pinesim/lod.py), every other plant is a static mesh
+# One fruit = one session: the arm starts and finishes it in the default posture; a leaf uprooted / fruit dropped
+# ends that session (fruit skipped, red lamp), the row continues.
+inherit: mission1
+task:
+  mode: xgh_light
+  eval_mode: xgh_detail
+  level: 1
+  n_plants: 8                          # light training row segment: 2 rows x 4 plants
+  max_steps: 30000
+  max_stops: 30
+  max_drive_steps: 1500
+  reach_window:                        # fruit position relative to the robot base (world x = travel direction)
+    dx_min: 0.30                       # closer: the arm folds down next to the bed front (measured v4)
+    dx_max: 1.12                       # [v6] was 0.68
+    dx_target: 1.00                    # [v6] was 0.52. With the fruit only 0.5 m ahead the IDEAL close view (camera on
+                                       # the robot's side of the fruit) lies over the arm's own base and is unreachable
+                                       # (the wrist camera cannot come closer than ~0.5 m to the base axis, measured).
+                                       # The camera then went to the SIDE of the fruit: across the bed the hand passes
+                                       # through the crowns of the other row (fruit knocked off, measured), from the
+                                       # corridor side the arm passes over the lamp / camera corners of the bed (most
+                                       # paths rejected, measured). With the fruit 1.0 m ahead the robot-side view is
+                                       # reachable and the arm works straight ahead above the plants already harvested.
+    lateral_max: 0.40
+    advance_blind: 0.50                # nothing seen ahead but the row continues: advance one plant spacing
+    replan_shift: 0.0
+  hard_failures: [collision, floor_contact, timeout, sim_unstable]   # anything else = this fruit skipped
+
+robot:
+  base_mount_height: 0.911             # deck rib top of the XGH505H bed (user's CAD)
+  base_cylinder_half: 0.05
+  base_quat_wxyz: [0, 0, 0, -1]
+  home_tcp_local: [0.45, 0.0, 0.15]
+  default_pan_deg: 180.0               # default posture pointing forward (travel direction), above the canopy
+
+xgh:                                   # vehicle geometry measured from the user's STL files (vehicle frame, metres)
+  base_pos_in_vehicle: [0.82, 0.0, 0.911]   # arm on the centre line, 8 cm behind the front edge of the bed
+  bed_dz: -0.068
+  deck_top: 0.911
+  deck_plate: [0.902, 0.908]
+  bed_x: [-1.150, 0.900]
+  bed_half_y: 0.585
+  bed_bottom: 0.742
+  track_x: [-1.009, 0.737]
+  track_y: [0.485, 0.615]
+  track_top: 0.48
+  wheel_radius: 0.09
+  wheel_z: 0.087
+  wheels_x: [-0.650, -0.423, -0.223, -0.023, 0.177, 0.420]
+  wheels_lift: [0.010, 0, 0, 0, 0, 0.010]
+  mass: {track_box: 50, deck: 120, bed_frame: 60, posts: 15, wheel: 5}
+  baskets:
+    - {prefix: basket, xy: [0.078, 0.2695]}
+    - {prefix: basket2, xy: [0.078, -0.2695]}
+  basket_floor_z: 0.926
+  corner_cam:                          # under the front-RIGHT bed corner: sees the work area and part of the arm
+    pos: [0.94, -0.585, 0.85]
+    target: [1.55, 0.0, 0.48]
+    fovy: 75
+  indicator:                           # blinking lamp under the front-LEFT bed corner (opposite the camera) [USER v5]
+    pos: [0.92, 0.585, 0.86]
+    radius: 0.028
+  start_x: 0.0
+
+gripper:
+  housing_mass: 3.424
+
+basket:
+  inner_size: [0.355, 0.477, 0.26]     # XGH505H crates (user's CAD)
+  wall_thickness: 0.01
+  floor_thickness: 0.03
+  capacity: 8
+  # [v6] floor layer 2 x 3 (far corners first), fruits 7-8 between them
+  drop_pattern: [[-0.085, -0.155], [0.085, 0.155], [-0.085, 0.155], [0.085, -0.155], [-0.085, 0.0], [0.085, 0.0],
+                 [0.0, -0.0775], [0.0, 0.0775]]
+  drop_clearance: 0.10
+  settle_time: 0.6
+
+plant:
+  mute_penetrating_leaves: true        # leaves a picked fruit is already inside stop colliding until it is clear
+
+field:
+  plants_per_row: 2                    # [v5] training field: 2 x 2 plants (one light episode ~10 min wall)
+  first_plant_x: 1.65                  # 0.83 m ahead of the base at the start
+  vehicle_start_x: 0.0
+
+planning:
+  # [v6] forward view first; the side views only when it shows no fruit ahead. Fruits are remembered (world frame),
+  # so the survey is repeated only when the memory is used up or a remembered fruit is not found
+  scan: {radius: 0.45, height: 0.35, depression_deg: 62, azimuths_deg: [0, -50, 50], early_stop: true, need: 1,
+         extra_views: 0, settle_steps: 3, stop_confidence: 0.15}   # (row filter + memory: any detection ends the survey)
+  # [v6] prefer_outside: the close views are taken from the CORRIDOR side of the fruit's row first. The view straight
+  # from the robot's side is not reachable here (fruit 0.5 m ahead: the wrist camera cannot come closer than ~0.5 m
+  # to the arm's own base axis, measured), and of the two side views the one across the bed puts the hand over the
+  # other row - through the crowns of its plants (fruit knocked off, measured).
+  look: {match_dist: 0.20, prefer_outside: true}
+  start_reach: {r_min: 0.20, r_max: 1.10, dz_min: -0.90, dz_max: 0.40, z_min_abs: 0.15}
+  carry: {retreat_to_t1: false, predrop_height: 0.15}
+
+eval_field:                            # realistic evaluation field (scripts/eval_xgh.py)
+  length_m: 15.0
+  plants_per_row: 30                   # 2 rows -> 60 plants, last plant 14.75 m after the first
+  first_plant_x: 1.65
+  seed: 2026
+  lod:
+    rule: target_previous_next         # [USER v5] interactive = target + next (before the first fruit is placed),
+                                       # then target + previously harvested + next; all others static meshes
+    pool_per_kind: 3
+    render_window: [-3.0, 7.0]         # MuJoCo draws static plants only here (CPU rendering); HTML has all
+
+train:
+  timesteps: 12000                     # short fine-tuning budget (2-core machine)
+  n_envs: 1
+  eval_freq: 4000
+  eval_episodes: 2
+  eval_seed: 797400
+
+sac:
+  learning_starts: 800                 # [v5] short fine-tuning from Mission 2 (same observation meaning)
+  critic_warmup_steps: 800

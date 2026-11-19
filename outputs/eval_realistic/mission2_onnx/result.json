@@ -1,0 +1,396 @@
+{
+ "summary": {
+  "mission": "mission2",
+  "scene": "platform_detail (realistic)",
+  "policy": "reference",
+  "n": 2,
+  "success": 2,
+  "success_rate": 1.0,
+  "fruits_placed": 4,
+  "fruits_total": 4,
+  "fruit_rate": 1.0,
+  "failures": {},
+  "leaf_damage_total": 0,
+  "est_error_cm_median": 0.5492754558028211,
+  "timing": {
+   "fruits_timed": 4,
+   "observe_to_basket_s_mean": 22.099299932250272,
+   "observe_to_basket_s_median": 21.70557253350042,
+   "observe_to_basket_s_max": 24.61359527100147,
+   "observe_to_basket_under_40s": 1.0,
+   "cycle_s_mean": 25.12929993225027,
+   "compute_s_mean": 2.684299932250269,
+   "s_per_fruit": 25.4825,
+   "motion_s_total": 89.78,
+   "compute_s_total": 12.15
+  },
+  "wall_s": 124.4,
+  "seeds": [
+   940000,
+   2
+  ],
+  "html": [
+   "/mnt/c/Users/HP/Mujoco_ws/v6_prototype/outputs/eval_realistic/mission2_onnx/mission2_seed940000.html"
+  ]
+ },
+ "episodes": [
+  {
+   "seed": 940000,
+   "success": true,
+   "failure": "",
+   "n_placed": 2,
+   "n_targets": 2,
+   "steps": 2368,
+   "rl_steps": 874,
+   "ret": 242.38,
+   "wall_s": 45.0,
+   "leaf_damage": 0,
+   "leaf_root_bend_max_deg": 18.6,
+   "shield_events": 0,
+   "fail_phase": "",
+   "sim_time_s": 47.36,
+   "compute_s": 6.03,
+   "plants": [
+    {
+     "kind": 3,
+     "tilt_deg": 14.3
+    },
+    {
+     "kind": 1,
+     "tilt_deg": 13.2
+    }
+   ],
+   "targets": [
+    {
+     "slot_gt": 6,
+     "est_error": 0.006083086576083266,
+     "plan_reason": "ok",
+     "face": "window",
+     "clearance": 0.07072727806416972,
+     "grasped": true,
+     "detached": true,
+     "placed": true,
+     "twist_deg": 116.80000000000011,
+     "stem_force": 0.0,
+     "stem_torque": 1.687258000323228,
+     "advance_cm": 15.577836363217129,
+     "failure": "",
+     "t_start": 0.0,
+     "t_decided": 5.5200000000000005,
+     "t_grasped": 10.040000000000001,
+     "t_placed": 21.98,
+     "t_end": 25.34,
+     "compute_s": 2.633595271001468,
+     "n_views": 1,
+     "t1_shift_cm": 0.15782714914755533,
+     "advance_corrections": 0,
+     "grip_drop_cm": 1.6601399071326357,
+     "regrips": 0,
+     "carry_guards": 0
+    },
+    {
+     "slot_gt": 2,
+     "est_error": 0.0049064473421894595,
+     "plan_reason": "ok",
+     "face": "window",
+     "clearance": 0.0475152427766473,
+     "grasped": true,
+     "detached": true,
+     "placed": true,
+     "twist_deg": 83.20000000000006,
+     "stem_force": 0.5971435786012967,
+     "stem_torque": 1.2035661887508575,
+     "advance_cm": 13.66842780226665,
+     "failure": "",
+     "t_start": 25.34,
+     "t_decided": 30.36,
+     "t_grasped": 35.22,
+     "t_placed": 45.52,
+     "t_end": 47.36,
+     "compute_s": 2.72981508599878,
+     "n_views": 1,
+     "t1_shift_cm": 0.20403252432688715,
+     "advance_corrections": 0,
+     "grip_drop_cm": 1.4480045421861463,
+     "regrips": 1,
+     "carry_guards": 0
+    }
+   ],
+   "events": [
+    [
+     125,
+     "scan: 2 views, 2 fruit"
+    ],
+    [
+     276,
+     "target slot 6: est err 0.6 cm, 1 view(s), window diffusion rank 0 (8 T2 candidates, shoulder 0.57), clearance 7.1 cm, advance 15.6 cm"
+    ],
+    [
+     276,
+     "phase approach"
+    ],
+    [
+     290,
+     "T1 check: estimate confirmed (2 mm)"
+    ],
+    [
+     290,
+     "phase line"
+    ],
+    [
+     575,
+     "stem broke at twist -117 deg (F 0 N, T 1.69 N m)"
+    ],
+    [
+     665,
+     "phase retreat"
+    ],
+    [
+     721,
+     "phase lift"
+    ],
+    [
+     788,
+     "phase transport"
+    ],
+    [
+     1099,
+     "fruit 6 in basket"
+    ],
+    [
+     1518,
+     "target slot 2: est err 0.5 cm, 1 view(s), window diffusion rank 0 (8 T2 candidates, shoulder 0.55), clearance 4.8 cm, advance 13.7 cm"
+    ],
+    [
+     1518,
+     "phase approach"
+    ],
+    [
+     1534,
+     "T1 check: estimate confirmed (2 mm)"
+    ],
+    [
+     1534,
+     "phase line"
+    ],
+    [
+     1713,
+     "re-grip: widest section -1.9 cm from the pad centre line -> hand -1.9 cm"
+    ],
+    [
+     1813,
+     "stem broke at twist +83 deg (F 0 N, T 1.20 N m)"
+    ],
+    [
+     1892,
+     "phase retreat"
+    ],
+    [
+     1947,
+     "phase lift"
+    ],
+    [
+     2018,
+     "phase transport"
+    ],
+    [
+     2276,
+     "fruit 2 in basket"
+    ],
+    [
+     2368,
+     "all targets placed"
+    ]
+   ],
+   "observe_to_basket_s": [
+    24.6,
+    22.9
+   ]
+  },
+  {
+   "seed": 940001,
+   "success": true,
+   "failure": "",
+   "n_placed": 2,
+   "n_targets": 2,
+   "steps": 2121,
+   "rl_steps": 828,
+   "ret": 267.12,
+   "wall_s": 45.4,
+   "leaf_damage": 0,
+   "leaf_root_bend_max_deg": 25.8,
+   "shield_events": 0,
+   "fail_phase": "",
+   "sim_time_s": 42.42,
+   "compute_s": 6.12,
+   "plants": [
+    {
+     "kind": 4,
+     "tilt_deg": 14.5
+    },
+    {
+     "kind": 2,
+     "tilt_deg": 5.1
+    }
+   ],
+   "targets": [
+    {
+     "slot_gt": 4,
+     "est_error": 0.002571425660709062,
+     "plan_reason": "ok",
+     "face": "window",
+     "clearance": 0.07312967080630423,
+     "grasped": true,
+     "detached": true,
+     "placed": true,
+     "twist_deg": 0.0,
+     "stem_force": 73.93460357754847,
+     "stem_torque": 0.011553264153000137,
+     "advance_cm": 15.937840612458906,
+     "failure": "",
+     "t_start": 0.0,
+     "t_decided": 4.6000000000000005,
+     "t_grasped": 9.78,
+     "t_placed": 18.02,
+     "t_end": 21.3,
+     "compute_s": 2.3524593909987743,
+     "n_views": 1,
+     "t1_shift_cm": 0.20377584997877882,
+     "advance_corrections": 0,
+     "grip_drop_cm": 3.5155647439960593,
+     "regrips": 0,
+     "carry_guards": 0
+    },
+    {
+     "slot_gt": 8,
+     "est_error": 0.006079061773866963,
+     "plan_reason": "ok",
+     "face": "window",
+     "clearance": 0.01915038836935739,
+     "grasped": true,
+     "detached": true,
+     "placed": true,
+     "twist_deg": 125.00000000000001,
+     "stem_force": 42.0481591314498,
+     "stem_torque": 1.6135740932751592,
+     "advance_cm": 14.11945497604018,
+     "failure": "",
+     "t_start": 21.3,
+     "t_decided": 22.64,
+     "t_grasped": 26.48,
+     "t_placed": 38.78,
+     "t_end": 42.42,
+     "compute_s": 3.0213299810020544,
+     "n_views": 1,
+     "t1_shift_cm": 0.314377139883337,
+     "advance_corrections": 0,
+     "grip_drop_cm": 0.4300274553697264,
+     "regrips": 0,
+     "carry_guards": 0
+    }
+   ],
+   "events": [
+    [
+     80,
+     "scan: 1 views, 2 fruit"
+    ],
+    [
+     230,
+     "target slot 4: est err 0.3 cm, 1 view(s), window diffusion rank 0 (8 T2 candidates, shoulder 0.61), clearance 7.3 cm, advance 15.9 cm"
+    ],
+    [
+     230,
+     "phase approach"
+    ],
+    [
+     261,
+     "T1 check: estimate confirmed (2 mm)"
+    ],
+    [
+     261,
+     "phase line"
+    ],
+    [
+     489,
+     "twist infeasible (reach / neighbour fruit in the swing) -> pull only"
+    ],
+    [
+     489,
+     "stem not broken by the twist: pulling along the fruit axis"
+    ],
+    [
+     509,
+     "stem broke during the axial pull (F 74 N, T 0.01 N m)"
+    ],
+    [
+     509,
+     "phase retreat"
+    ],
+    [
+     565,
+     "phase lift"
+    ],
+    [
+     659,
+     "phase transport"
+    ],
+    [
+     901,
+     "fruit 4 in basket"
+    ],
+    [
+     1132,
+     "target slot 8: est err 0.6 cm, 1 view(s), window diffusion rank 0 (8 T2 candidates, shoulder 0.71), clearance 1.9 cm, advance 14.1 cm"
+    ],
+    [
+     1132,
+     "phase approach"
+    ],
+    [
+     1153,
+     "T1 check: estimate confirmed (3 mm)"
+    ],
+    [
+     1153,
+     "phase line"
+    ],
+    [
+     1403,
+     "twist +125 deg stopped (limit), stem not broken: trying the other direction"
+    ],
+    [
+     1533,
+     "twist -99 deg stopped (limit), stem not broken"
+    ],
+    [
+     1537,
+     "stem broke while turning back (F 15 N, T 1.75 N m)"
+    ],
+    [
+     1592,
+     "phase retreat"
+    ],
+    [
+     1647,
+     "phase lift"
+    ],
+    [
+     1722,
+     "phase transport"
+    ],
+    [
+     1939,
+     "fruit 8 in basket"
+    ],
+    [
+     2121,
+     "all targets placed"
+    ]
+   ],
+   "observe_to_basket_s": [
+    20.4,
+    20.5
+   ]
+  }
+ ]
+}

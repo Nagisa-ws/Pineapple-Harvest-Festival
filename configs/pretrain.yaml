@@ -1,0 +1,24 @@
+# configs/pretrain.yaml - Stargaze camera rig (pretraining). Merged over common.yaml.
+# Version 5: the rig shows the user's REALISTIC pineapples (leaf, fruit, crown meshes; 5 plants x 5 fruits x 5 crowns,
+# fruit centre 0.60-0.70 m, plant tilted 0-15 deg); the camera result is the shoulder, the window, the T2 candidates
+# and the diffusion-policy decision (T2 + T1). Computation runs only while the camera is still (cancelled on move).
+rig:
+  initial_pose: {azimuth_deg: 0.0, radius: 0.75, height: 1.05, aim_height: 0.62}
+  radius_range: [0.4, 1.6]
+  height_range: [0.2, 1.8]
+  settle_s: 1.5
+  debug_slow_s: 0.0
+  level: 2
+dataset:                               # diffusion-policy training data (pretrain/make_t2_dataset.py)
+  n_scenes: 900
+  views_per_scene: 6
+  radius_range: [0.45, 0.85]
+  elevation_deg_range: [15, 60]
+  aim_jitter: 0.04
+diffusion:
+  steps: 50                            # DDPM noise steps
+  sample_steps: 10                     # DDIM steps at inference
+  epochs: 400
+  batch: 256
+  lr: 0.001
+  hidden: 256

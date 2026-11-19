@@ -1,0 +1,32 @@
+{
+ "mode": "platform_detail",
+ "n_plants": 1,
+ "base_pos": [
+  0.0,
+  0.0,
+  1.15
+ ],
+ "slots": [
+  {
+   "slot": 0,
+   "kind": 0
+  },
+  {
+   "slot": 1,
+   "kind": 1
+  },
+  {
+   "slot": 2,
+   "kind": 2
+  },
+  {
+   "slot": 3,
+   "kind": 3
+  },
+  {
+   "slot": 4,
+   "kind": 4
+  }
+ ],
+ "n_slots": 5
+}

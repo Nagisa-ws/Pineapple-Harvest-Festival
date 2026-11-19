@@ -1,0 +1,270 @@
+# configs/common.yaml - single source of truth shared by the pretraining rig and Missions 1-3 (version 5).
+# SI units (m, rad unless the key ends in _deg, kg, N, s).
+# Provenance tag after each value (see docs/PARAMETER_REGISTER.md):
+#   [USER] fixed by the user (prompt / illustration)      [REF] copied from abc_SAC_xyzBOT @ d46ad6dc
+#   [PREV] kept from the previous version of this project  [PROV] provisional engineering assumption
+#   [DER] derived from other values
+
+robot:
+  base_mount_height: 1.15          # [USER] ground -> robot base mounting surface (platform top / vehicle deck)
+  base_cylinder_half: 0.05         # [REF] UR10e base cylinder half height; base frame origin = mount + 0.05
+  base_quat_wxyz: [0, 0, 0, -1]    # [REF] ur10e_harvest.xml
+  # IK work posture (canonical elbow-up branch for camera views and approach plans): tool pointing straight down,
+  # TCP 0.45 m in front of the base and 0.15 m above it
+  home_tcp_local: [0.45, 0.0, 0.15]   # [PROV] in the base-yaw frame (x = forward)
+  # DEFAULT posture of every session (start and finish), fitted to the user's picture: upper arm leaning 17 deg
+  # forward, forearm hanging down, wrist low, closed gripper pointing horizontally forward with the jaws side by side.
+  # Joint 1 (pan) is set per scene by default_pan_deg (0 = the arm's own forward = -x of the base frame).
+  default_q: [0.0, -1.27, 2.76, 1.658, -1.5708, 0.0]   # [USER picture]
+  default_pan_deg: 0.0
+
+gripper:                            # U-jaw parallel gripper on the slider (user's ur10e_eval.xml / robot_gripper_v2) [USER]
+  type: slide
+  closed_gap: 0.1165                 # pad gap at slider 0 (closed): the U still holds a 12.5-14.5 cm fruit
+  stroke: 0.025                      # per jaw
+  max_opening: 0.1665
+  min_opening: 0.1165
+  tcp_z: 0.2175                      # grasp point (fruit axis in the cradle) above the servo base
+  tip_z: 0.337                       # jaw tips: REFERENCE POINT of the approach (user: closed tip goes T1 -> T2)
+  grip_z: 0.262                      # where the fruit axis is gripped after the advance (pads span 0.195-0.315)
+  jaw_force: 100.0                   # N per jaw (200 N squeeze)
+  jaw_kp: 40000.0
+  jaw_kv: 75.0
+  grip_clearance: 0.010
+  housing_mass: 3.424
+
+camera:
+  image_width: 640                 # [PROV]
+  image_height: 480
+  fov_vertical_deg: 58           # [REF] wrist_cam fovy
+  near_clip: 0.07
+  far_clip: 5.0
+  pos_in_tool: [0.0, 0.12, 0.12]   # [v5] on a bracket 12 cm beside the jaws (the closed U-jaw blocked the old view);
+                                   # optical axis parallel to the tool z (approach direction) [USER]
+
+noise:                              # camera noise model (training / evaluation); set enabled false for clean frames
+  enabled: true
+  rgb_noise_std: 5.0
+  brightness_range: [0.8, 1.2]
+  depth_noise_rel: 0.006
+  depth_noise_abs: 0.002
+  depth_invalid_frac: 0.01
+  calib_rot_deg: 0.3
+  calib_trans_m: 0.003
+
+perception:                         # colour classes of the simulated materials (HSV, OpenCV units, hue 0-180)
+  fruit_hsv_lo: [21, 110, 80]        # yellow fruit
+  fruit_hsv_hi: [34, 255, 255]
+  leaf_hsv_lo: [36, 70, 40]          # green leaves, crown, stalk
+  leaf_hsv_hi: [90, 255, 255]
+  leaf2_hsv_lo: [4, 140, 60]         # orange leaves / orange leaf tips (soil: same hue but saturation < 0.5)
+  leaf2_hsv_hi: [18, 255, 255]
+  self_filter_margin: 0.03           # leaf-coloured points on the robot's own vehicle (green bed) are dropped
+  min_fruit_pixels: 25
+  voxel: 0.012                     # leaf point-cloud voxel (m)
+  cluster_radius: 0.035            # single-link fruit clustering radius (m)
+  min_cluster_points: 25
+  fruit_radius_range: [0.060, 0.076]   # cultivar size (mesh fruits 12.5-14.5 cm) +- margin
+  height_ratio: 1.3                # prior fruit height / diameter when the bottom is hidden [PROV]
+  fruit_height_range: [0.14, 0.22] # prior fruit height bounds (= generator range)
+  max_tilt_deg: 18.0               # fitted fruit axis tilt is bounded to this (plants stand 0-15 deg off vertical)
+  max_range: 2.2                   # ignore depth beyond this (m)
+  fruit_center_z_range: [0.48, 0.84]   # [v6] plausible fruit centre height (fruit 0.60-0.70 m, plant tilted <= 15 deg):
+                                   # yellow / orange leaf tips near the ground were detected as "fruit"
+  leaf_crop_radius: 0.55           # leaf points kept around the target fruit (m)
+  target_keepout: 0.025            # leaf/fruit points within fruit_r + this of the nucleus are "the target"
+  leaf_point_radius: 0.015         # effective obstacle radius per leaf voxel (m)
+
+stargaze:                           # Stargaze max-clearance idea, restricted to the WINDOW around the fruit shoulder
+  # shoulder = fruit pixels seen by the camera between the fruit centre and the crown base (leaf-covered parts of the
+  # fruit are not fruit pixels, so they never count); window = image bounding box of the shoulder
+  line_length: 0.20                # |T1 - T2| (m)
+  elevations_deg: [-10, 0, 10, 20, 30, 40]   # approach line elevation candidates (outward direction); steeper
+                                   # lines sent the long U-jaws past the fruit bottom onto the stalk (measured)
+  window_margin_px: 6              # T1 must project inside the window (+ margin) of the decision view
+  grid: 8                          # window grid for the T2 candidates (and the diffusion policy input)
+  min_cell_pixels: 3               # shoulder pixels per grid cell for a T2 candidate
+  min_shoulder_pixels: 20
+  t2_point_weight: 0.5             # score = line clearance + w * clearance of T2 itself (camera leaf points)
+  top_k: 8                         # candidates passed to the arm planner (validated in rank order)
+  decision: diffusion              # diffusion | heuristic (camera clearance only) | random
+  diffusion_model: models/t2_diffusion.pt
+  diffusion_samples: 24
+  # legacy cube Stargaze (kept for comparison in the pretraining rig)
+  cube_half_size: 0.30
+  resolution: 21
+  faces: [top, front, left, right]
+  grip_modes: [body]
+  body_min_deg: -10
+  body_max_deg: 60
+  crown_top_min_deg: 55
+  crown_side_min_deg: -5
+  crown_side_max_deg: 20
+
+plant:                              # procedural pineapple (Mission 4/5 generator) [REF]; every size is a guess
+  pool: {n_rosette: 12, n_block: 6, n_tuft: 5, rosette_segments: 3, block_segments: 3}
+  fruit:
+    diameter_range: [0.125, 0.145]       # = the user's mesh fruits (fit the 11.65-16.65 cm U-jaw)
+    height_range: [0.15, 0.21]
+    center_height_range: [0.60, 0.70]    # [USER] fruit 60-70 cm above the ground in every mission
+    mass_range: [0.6, 1.0]
+  tilt_deg_range: [0.0, 15.0]            # [USER] whole plant tilted 0-15 deg from vertical, any horizontal direction
+  orange_leaf_frac: 0.30                 # light plants: share of orange leaf segments (realistic plants: generated)
+  leaf_top_max: 0.86                    # [v5] light plants: no leaf above 0.86 m (world, after tilt): the XGH505H passes over the rows, arm base at 0.91 m
+  stalk: {diameter_range: [0.025, 0.045]}
+  crown:
+    neck_diameter_range: [0.030, 0.055]
+    neck_length_range: [0.02, 0.04]
+    tuft_count_range: [3, 5]
+    tuft_length_range: [0.09, 0.16]
+    tuft_width_range: [0.014, 0.022]
+    tuft_elevation_deg_range: [45, 80]
+  leaf:
+    width_range: [0.02, 0.03]
+    stiffness_range: [1.0, 8.0]          # N m/rad per hinge (unknown for real leaves)
+    damping_range: [0.05, 0.3]
+  rosette:
+    count_range: [8, 12]
+    root_radius_range: [0.03, 0.07]
+    root_height_range: [0.03, 0.15]
+    elevation_deg_range: [45, 78]
+    bend_deg_range: [6, 16]
+    length_range: [0.45, 0.80]           # plant height ~0.70-0.85 m like the user's mesh plants
+  block:                                 # leaves crossing the fruit from the top / front / back / left / right
+    sides: [top, front, back, left, right]
+    p_block: 0.4
+    max_per_side: 2
+    p_all_sides: 0.1
+    distance_range: [0.03, 0.15]
+    length_range: [0.35, 0.60]
+  stem:                                  # stem link on top of the stalk [PROV - measure real stalks]
+    torsion_stiffness: 1.0               # N m/rad: twisting the fruit loads this spring
+    torsion_damping: 0.3
+    bending_stiffness: 40.0              # N m/rad (keeps the fruit upright: > m g h)
+    bending_damping: 2.0
+    tension_stiffness: 4000.0            # N/m: pulling the fruit stretches this spring (rest sag = m g / k)
+    tension_damping: 40.0
+    break_torque_range: [0.8, 2.0]       # N m twist torque at which the stem snaps (-> 46..115 deg of twist)
+    break_force_range: [60.0, 120.0]     # N weld force beyond the resting load (pull-out / knock)
+  levels:                                # curriculum difficulty (keys override the ranges above)
+    - {name: sparse, rosette_count: [5, 7], length_range: [0.45, 0.72], elevation_deg_range: [40, 70], p_block: 0.0, max_per_side: 1, p_all_sides: 0.0, stiffness_range: [1.0, 4.0]}
+    - {name: medium, rosette_count: [7, 10], length_range: [0.45, 0.78], elevation_deg_range: [45, 75], p_block: 0.25, max_per_side: 1, p_all_sides: 0.0, stiffness_range: [1.0, 6.0]}
+    - {name: reference, rosette_count: [8, 12], length_range: [0.45, 0.80], elevation_deg_range: [45, 78], p_block: 0.4, max_per_side: 2, p_all_sides: 0.1, stiffness_range: [1.0, 8.0]}
+
+basket:
+  inner_size: [0.36, 0.36, 0.24]   # [PROV] length, width, wall height
+  wall_thickness: 0.02
+  floor_thickness: 0.04            # thick slab: a falling fruit must not tunnel through the floor
+  floor_height_platform: 0.95      # [PROV] basket floor above ground on its stand (Missions 1-2)
+  radius_platform: 0.55            # [PROV] horizontal distance base -> basket centre (Missions 1-2)
+  drop_clearance: 0.10             # fruit bottom above the rim when released (margin for slip in the grip)
+  settle_time: 0.6                 # s the fruit must stay inside (was 1.0)
+  # [v6] places on the crate floor (crate frame x, y in m) used fruit after fruit; a fruit released above an earlier
+  # upright fruit stays standing on it above the rim (measured: basket_miss)
+  drop_pattern: [[0.0, 0.0], [0.10, 0.10], [-0.10, -0.10], [0.10, -0.10], [-0.10, 0.10]]
+  drop_alternatives: 2             # further places tried when no carry route reaches the first one
+
+platform:
+  half_size: [0.18, 0.18]          # [PROV] column under the robot base (top at robot.base_mount_height)
+
+vehicle:                            # ATEX XGH505H drive (Mission 3; geometry in configs/mission3.yaml, section xgh)
+  max_track_speed: 0.45            # m/s between stops (was 0.30; spec high gear 0.87 m/s)
+  ground_friction: 0.9
+
+indicator:                          # blinking lamp (vehicle corner opposite the corner camera) [USER v5]
+  blink_hz: 2.0
+  colours:                          # observation / action / success+standby / failure
+    observe: [1.0, 0.85, 0.05]      # yellow: looking for the widest gap (scan, look, T1/T2 decision)
+    action: [0.10, 0.35, 1.0]       # blue: harvesting (approach, line, advance, grip, twist, pull, carry, place)
+    success: [0.10, 0.90, 0.20]     # green: fruit in the crate, standby / next phase
+    fail: [1.0, 0.08, 0.05]         # red: fruit dropped, leaf uprooted, execution failed
+
+realistic:                          # the user's mesh pineapples (assets_xgh): 5 combinations used in every realistic scene
+  kinds:                            # plant mesh, fruit mesh, crown mesh, fruit centre height (all within 0.60-0.70 m)
+    - {plant: 1, fruit: 4, crown: 1, fruit_center_z: 0.64}
+    - {plant: 2, fruit: 1, crown: 3, fruit_center_z: 0.61}
+    - {plant: 3, fruit: 5, crown: 2, fruit_center_z: 0.69}
+    - {plant: 4, fruit: 2, crown: 5, fruit_center_z: 0.66}
+    - {plant: 5, fruit: 3, crown: 4, fruit_center_z: 0.62}
+  fruit:                            # fruit data of the mesh pineapples: diameter, body height, mass
+    "1": [0.125, 0.175, 0.60]
+    "2": [0.130, 0.201, 0.70]
+    "3": [0.135, 0.148, 0.75]
+    "4": [0.140, 0.197, 0.90]
+    "5": [0.145, 0.165, 1.00]
+  leaf_stiffness: {base: [2.0, 5.0], tip: [1.0, 3.0]}   # N m/rad per hinge (2 hinges per segment)
+  leaf_damping: [0.08, 0.25]
+  stem_break_force_range: [60.0, 120.0]
+  stem_break_torque_range: [0.8, 2.0]
+
+field:                              # Mission 3
+  crop_strip_width: 0.30           # [USER]
+  corridor_width: 0.30             # [USER]
+  plant_spacing: 0.50              # [USER v5] was 0.30
+  row_stagger: 0.25                # [USER v5] was 0.15
+  row_offset_y: 0.15               # [USER] rows on the strip boundaries (as drawn)
+  plants_per_row: 4                # [PROV] simulated row segment (end to end)
+  side_rows:                       # [USER v6] neighbour beds left and right of the harvested bed (Mission 3): static,
+    enabled: true                  # non-interactive meshes (no joints, no collision; the cameras do see them)
+    edge_gap: 0.50                 # m between the edge of this bed and the edge of the neighbour bed  <- ADJUST HERE
+                                   # (edge = centre line of the outer plant row; rows of one bed are 2*row_offset_y apart)
+    beds_per_side: 3               # neighbour beds on each side
+    extra_plants: 1                # neighbour rows extend this many plants beyond both ends of the harvested bed
+  first_plant_x: 1.40              # [PROV] first plant ahead of the vehicle start
+  vehicle_start_x: 0.0
+
+control:
+  timestep: 0.001                  # physics step (s); 2 ms (reference) was unstable for friction grasps of the fruit
+  n_substeps: 20                   # -> 20 ms control step [REF control rate]
+  max_pos_delta: 0.05              # m per control step for a = 1 [REF]
+  servo_rate: 10.0                 # 1/s = kp / kv of the joint servos: hand speed = a * max_pos_delta * servo_rate (0.5 m/s)
+  max_rot_delta: 0.08              # rad per control step [REF]
+  max_joint_delta: 0.25            # rad per control step [REF]
+  max_orient_lead_deg: 8.0         # [REF] target orientation leads the actual one by at most this
+  ik: {max_iters: 60, pos_tol: 0.0001, rot_tol: 0.002, rot_weight: 0.5}
+  validation: {ik_pos_tol: 0.003, ik_rot_tol: 0.04, waypoint_step: 0.04, approach_hard_margin: 0.025, line_hard_margin: 0.008,
+               plans_to_try: 12, lines_per_face: 3, max_feasible_eval: 4, intrusion_vs_clearance: 0.5}
+  reference: {gain: 0.8, lookahead: 2, rot_gain: 0.8}
+
+# ----------------------------------------------------------------------------- residual SAC (reference Mission 3 values)
+train:
+  timesteps: 200000
+  n_envs: 1                        # SubprocVecEnv when > 1 (one MuJoCo scene per process)
+  seed: 7
+  ckpt_freq: 20000
+  eval_freq: 10000
+  eval_episodes: 5
+  eval_seed: 777000                # held-out evaluation seeds (never used for training scenes)
+sac:                               # [REF] Mission3/configs/sac_config.yaml unless noted
+  buffer_size: 300000
+  learning_starts: 2000
+  batch_size: 256
+  tau: 0.005
+  gamma: 0.99                      # [PROV] 0.995 in the reference; harvest episodes have long scripted gaps
+  train_freq: 2                    # with 2 envs: one gradient step per 4 transitions (update-to-data 0.25, as the
+  gradient_steps: 1                # reference with 4 envs)
+  learning_rate: 1.5e-4
+  lr_schedule: constant
+  ent_coef: auto_0.005             # [v6] learned entropy coefficient, starting at the old fixed value 0.005
+  target_entropy: auto             # = -6 for the 6-D action; -3 / -4.5 were tried: the residual became too noisy near
+  ent_coef_max: 0.02               # the fruit (validation success fell from 0.8 to 0.5 between 20k and 40k steps)
+  actor_mean_reg: 1.0e-3
+  net_arch: [256, 256]             # identical in every mission (required for weight transfer)
+  qf_net_arch: [256, 256]
+  activation_fn: relu
+  residual_log_std_init: -1.6
+  critic_warmup_steps: 3000        # actor + entropy frozen, critic learns the new task first
+  actor_anchor_coef: 1.0           # pull toward zero correction, decaying over actor_anchor_steps
+  actor_anchor_steps: 30000
+  actor_anchor_floor: 0.05         # (0.01 was tried in v6: with the short budgets of this machine the policy drifted
+                                   #  into the safety shield; a lower floor needs a much longer training run)
+normalization: {clip_obs: 10.0, epsilon: 1.0e-8}
+transfer:                          # pinesim/vendor/transfer.py options
+  zero_new_input_weights: true
+  reinit_constant_dims: true       # inputs constant in the source mission (e.g. ref_action rotation in ref. Mission 3)
+  reinit_fields: {obs_rel: [9, 10, 11], obs_dist: [3]}   # 4th obstacle slot = wrist force here
+  refit_all_stats: true
+  warm_stats_steps: 600
+  obs_rms_count: 5000
+  reset_residual_output: true
+export: {verify_tolerance: 1.0e-4}

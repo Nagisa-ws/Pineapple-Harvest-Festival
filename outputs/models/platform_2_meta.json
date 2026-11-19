@@ -1,0 +1,10 @@
+{
+ "mode": "platform",
+ "n_plants": 2,
+ "base_pos": [
+  0.0,
+  0.0,
+  1.15
+ ],
+ "n_slots": 2
+}

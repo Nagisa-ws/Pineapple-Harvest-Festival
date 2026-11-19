@@ -1,0 +1,162 @@
+{
+ "tree_cherry": {
+  "kind": "tree",
+  "source": "3dexport_obj_1790962698.zip (Cherry Tree.obj; teksturnya tidak ada di zip -> warna polos)",
+  "triangles": 29189,
+  "source_triangles": 439134,
+  "size_m": [
+   9.36,
+   9.16,
+   7.0
+  ],
+  "files": [
+   "tree_cherry.gltf",
+   "tree_cherry.bin"
+  ],
+  "mb": 1.76
+ },
+ "tree_palm": {
+  "kind": "tree",
+  "source": "3dexport_palm_tree_0117051933_texture_obj_1737091724.zip",
+  "triangles": 8993,
+  "source_triangles": 187026,
+  "size_m": [
+   4.54,
+   4.28,
+   7.5
+  ],
+  "files": [
+   "tree_palm.gltf",
+   "tree_palm.bin",
+   "tree_palm_0.jpg"
+  ],
+  "mb": 0.56
+ },
+ "tree_royal_palm": {
+  "kind": "tree",
+  "source": "3dexport_palmtree_1702539499.zip (model.dae)",
+  "triangles": 11723,
+  "source_triangles": 103072,
+  "size_m": [
+   5.57,
+   6.38,
+   9.0
+  ],
+  "files": [
+   "tree_royal_palm.gltf",
+   "tree_royal_palm.bin",
+   "tree_royal_palm_0.jpg",
+   "tree_royal_palm_1.jpg",
+   "tree_royal_palm_2.jpg",
+   "tree_royal_palm_3.jpg"
+  ],
+  "mb": 0.87
+ },
+ "hut": {
+  "kind": "hut",
+  "source": "3dexport_texture_1568012941.zip (Hut_low.obj)",
+  "triangles": 764,
+  "source_triangles": 764,
+  "size_m": [
+   6.0,
+   5.32,
+   4.31
+  ],
+  "files": [
+   "hut.gltf",
+   "hut.bin",
+   "hut_0.jpg"
+  ],
+  "mb": 0.86
+ },
+ "stump_oak": {
+  "kind": "stump",
+  "source": "3dexport_tree00013_1505996840.zip",
+  "triangles": 1530,
+  "source_triangles": 1530,
+  "size_m": [
+   1.04,
+   1.3,
+   1.48
+  ],
+  "files": [
+   "stump_oak.gltf",
+   "stump_oak.bin",
+   "stump_oak_0.jpg",
+   "stump_oak_1.jpg"
+  ],
+  "mb": 0.17
+ },
+ "stump_sycamore": {
+  "kind": "stump",
+  "source": "3dexport_tree00014_1505996962.zip",
+  "triangles": 2320,
+  "source_triangles": 2320,
+  "size_m": [
+   2.2,
+   2.2,
+   1.33
+  ],
+  "files": [
+   "stump_sycamore.gltf",
+   "stump_sycamore.bin",
+   "stump_sycamore_0.jpg",
+   "stump_sycamore_1.jpg"
+  ],
+  "mb": 0.19
+ },
+ "tree_lowpoly": {
+  "kind": "tree",
+  "source": "3dexport_tree_1785838062.zip (only_low_poly_all_trees.blend, 'Low Poly Tree 1' dari 3 pohon)",
+  "triangles": 10440,
+  "source_triangles": 42202,
+  "size_m": [
+   3.48,
+   3.47,
+   6.0
+  ],
+  "files": [
+   "tree_lowpoly.gltf",
+   "tree_lowpoly.bin",
+   "tree_lowpoly_0.jpg",
+   "tree_lowpoly_1.png"
+  ],
+  "mb": 1.1
+ },
+ "tree_fir": {
+  "kind": "tree",
+  "source": "3dexport_tree_1465662961.zip (el.fbx)",
+  "triangles": 257,
+  "source_triangles": 257,
+  "size_m": [
+   6.07,
+   6.17,
+   9.0
+  ],
+  "files": [
+   "tree_fir.gltf",
+   "tree_fir.bin",
+   "tree_fir_0.png",
+   "tree_fir_1.jpg"
+  ],
+  "mb": 0.61
+ },
+ "tree_autumn": {
+  "kind": "tree",
+  "source": "3dexport_tree_001_1717238599.zip (SM_Autumn_01.obj)",
+  "triangles": 2556,
+  "source_triangles": 2556,
+  "size_m": [
+   3.45,
+   3.16,
+   8.0
+  ],
+  "files": [
+   "tree_autumn.gltf",
+   "tree_autumn.bin",
+   "tree_autumn_0.png",
+   "tree_autumn_1.png"
+  ],
+  "mb": 1.49
+ }
+}

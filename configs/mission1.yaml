@@ -1,0 +1,145 @@
+# configs/mission1.yaml - Mission 1: one plant, robot (UR10e + U-jaw gripper) on a 1.15 m platform, basket 180 deg
+# from the plant. Training on the LIGHT scene (mode platform: primitive shapes, procedural plants); evaluation on the
+# REALISTIC scene (mode platform_detail: the user's meshes, per-leaf articulated pineapples, ground mesh).
+task:
+  mode: platform
+  eval_mode: platform_detail
+  n_plants: 1
+  n_targets: 1
+  level: 2                         # plant difficulty (0 sparse, 1 medium, 2 reference density); curriculum may lower it
+  max_steps: 4000                  # control steps (20 ms) incl. scripted phases
+  max_scene_attempts: 5            # training: resample the scene if perception/planning finds no route
+  placement:
+    radius_range: [0.55, 0.80]     # plant stalk distance from the robot base axis (m)
+    azimuth_deg_range: [0, 360]    # anywhere around the platform; the basket goes to azimuth + 180
+  # episode ends on: robot collision, floor contact, numerical blow-up, time limit, a LEAF UPROOTED [USER v5], a
+  # fruit knocked off / dropped, or when the fruit is in the basket and the arm is back in the default posture.
+  # Touching / bending leaves does NOT end it (penalised, the arm keeps avoiding leaves).
+planning:
+  # scripted joint moves (survey, look, return): trapezoidal speed profile, slower near every perceived fruit [v6]
+  joint_speed_per_step: 0.040      # rad per 20 ms of pan / lift in free space (2.0 rad/s; UR10e limit 2.09 rad/s)
+  joint_speed_ratio: [1.0, 1.0, 1.5, 1.5, 1.5, 1.5]   # elbow / wrists may turn 1.5x faster (UR10e 3.14 rad/s)
+  joint_speed_near_fruit: 0.012    # rad per 20 ms when the arm is within fruit_slow_dist of a perceived fruit / crown
+  joint_accel_per_step2: 0.003     # rad per (20 ms)^2 (7.5 rad/s^2)
+  path_check_step: 0.08            # rad between collision checks along a candidate joint path
+  move_max_candidates: 4           # collision-free candidate paths compared by leaf intrusion (first = simplest)
+  move_leaf_max_points: 700        # perceived leaf points used for that comparison
+  fruit_slow_dist: 0.06            # m: slowest inside this distance of a perceived fruit
+  fruit_free_dist: 0.30            # m: full speed beyond this distance
+  # survey: stops as soon as the required fruit is seen (early_stop); extra_views more when only part of it is seen
+  # [v6] 8 azimuths, camera 5 cm higher and closer to the base axis: every fruit 0.5-0.95 m from the base is inside
+  # at least one image (the old 6 views left gaps for plants leaning toward the robot)
+  scan: {radius: 0.40, height: 0.45, depression_deg: 64, azimuths_deg: [0, 45, 90, 135, 180, 225, 270, 315], early_stop: true,
+         extra_views: 1, settle_steps: 3}
+  # close views: the approach runs along the camera rays of the decision view (T1 inside the window), so the views
+  # look at the fruit shoulder from moderate elevations (the U-jaw grips the fruit from the side)
+  # [v6] the FIRST view is the ideal gripper pose (robot side of the fruit, 30 deg above the horizon): the decision
+  # is made from it alone; views 2..n_views are only taken when that view gives no feasible line
+  look: {distance: 0.55, n_views: 3, elevations_deg: [30, 40, 18], azimuth_offsets_deg: [0, -35, 35, -70, 70, -110, 110],
+         camera_radius_range: [0.22, 1.10], settle_steps: 3, match_dist: 0.15}
+  start_reach: {r_min: 0.25, r_max: 1.10, dz_min: -1.10, dz_max: 0.40, z_min_abs: 0.15}
+  carry: {retreat_distance: 0.20, lift_heights: [0.15, 0.30, 0.45], predrop_height: 0.15}
+  extra_opening: 0.04
+  grip_height_target: 0.0          # [v6] pad centre this far along the fruit axis from the estimated fruit centre
+  grip_height_tol: 0.005           #      (the exact height is then corrected by the pad contact position: harvest.regrip)
+harvest:
+  align_steps: 40                  # hold the planned pose at T2 until aligned (< 4 mm, < 1.5 deg)
+  open_steps: 15                   # gripper opens at T2 (0.3 s)
+  advance_step: 0.0025             # m per 20 ms (0.125 m/s, was 0.2) from T2 until the fruit axis is between the pads
+  advance_touch_force: 12.0        # N on one jaw: stop, back off, shift toward that jaw (fruit centred in the U) [v6]
+  advance_corrections: 3
+  advance_correct_shift: 0.008     # m per correction
+  advance_backoff: 0.012           # m
+  t1_verify: {enabled: true, settle_steps: 3, min_points: 60, max_disagreement: 0.06, min_shift: 0.004, max_shift: 0.03,
+              depth_weight: 0.5}   # [v6] gripper camera re-detects the fruit with the jaw tips at T1
+  advance_margin: 0.0              # extra advance beyond the estimated fruit axis (m)
+  close_steps: 30                  # 0.6 s jaw closing (was 0.8)
+  grasp_min_pad_force: 2.0         # N per jaw (servo current sensing)
+  twist_step_deg: 1.6              # per 20 ms -> 80 deg/s (was 60)
+  twist_max_deg: 125.0             # (was 150; the strongest stem snaps at 115 deg)
+  twist_plan_step_deg: 9.0         # angular step of the feasibility check of the swing
+  twist_leaf_force_abort: 200.0    # N: leaves resisting the twisting hand -> stop, turn back, twist the other way
+  untwist_step_deg: 3.0            # per 20 ms: back to the approach orientation after the stem snapped [v6]
+  untwist_after_break: true
+  untwist_lift: 0.06               # m along the fruit axis BEFORE turning back: turned back at the picking height the
+  untwist_lift_steps: 20           # fruit ran into the stalk top / the leaves that had sprung back and was pushed out
+                                   # of the pads (measured)
+  twist_min_feasible_deg: 40.0
+  pull_up: true                    # [v6] twist did not snap the stem -> pull along the fruit axis (tension)
+  pull_up_distance: 0.06           # m
+  pull_up_step: 0.0015             # m per 20 ms (0.075 m/s)
+  centre_step: 0.002               # m per 20 ms while centring the pads on the fruit's widest section
+  # [v6] closed-loop grip height from the pad contact position: the fruit's widest section must lie within
+  # `tolerance` of the pad centre line. Above it the pads hold a taper and the fruit slides down and out (measured);
+  # below it a disturbance (stem snap) squeezes the fruit up and out (measured) - the widest section is the neutral,
+  # stable place for two flat pads.
+  regrip: {enabled: true, equator_offset: 0.0, tolerance: 0.010, max_tries: 2, max_shift: 0.03, release_gap: 0.012,
+           release_steps: 6, close_steps: 20}
+  release_steps: 15
+limits:
+  leaf_uproot_rad: 1.15            # [PROV guess] bend of a leaf's ROOT hinge at which the leaf is torn out of the
+                                   # rosette (~66 deg) -> "leaf_uprooted": the session ends [USER v5]
+  leaf_damage_rad: 0.9             # any hinge bent beyond this = a leaf damage event (counted + penalised, not terminal)
+  line_guard_frac: 0.85            # root bend > this x uproot limit on the line: back out to T1 and re-plan
+  line_guard_retries: 2
+  leaf_guard_lead_steps: 5         # [v6] guards also trip when the root bend will pass the guard within this many steps
+  move_guard_frac: 0.75            # [v6] root bend > this x uproot limit during a view move: stop, go back, skip the view
+  carry_guard_frac: 0.80           # [v6] root bend > this x uproot limit while pulling out / lifting: stop and
+  carry_guard_retries: 1           #      re-plan the carry with the other pull-out direction (once per fruit)
+  guard_new_views: 2               # [v6] leaf guard on the line / advance: up to this many NEW camera views to re-decide
+  stalk_force: 40.0                # N robot vs stalk (touching the peduncle is normal; pushing it hard is damage)
+  other_fruit_force: 10.0          # N robot vs a fruit that is not the target
+  target_touch_force: 40.0         # N jaws pressing the target before closing
+  t1_threshold: 0.03
+  grasp_pos_tol: 0.015             # tip within this of T2 -> open + advance
+  grasp_orient_deg: 12.0
+  drop_tol: 0.03
+  drop_margin: 0.06                # fruit farther than radius + this from the TCP while carrying = dropped
+reward:                            # [v6] re-balanced so that the return follows SUCCESS (see docs/PERUBAHAN_V6.md)
+  time_penalty: -0.02
+  distance_penalty: 0.05           # was 0.5: summed to about -80 per successful episode and hid the success signal
+  progress_weight: 20.0
+  smoothness_penalty: 0.05
+  cross_track_penalty: 150.0
+  orientation_penalty: 0.5
+  leaf_energy_penalty: 0.15        # touching / bending leaves: penalised every step (avoid leaves)
+  leaf_energy_ref: 0.1
+  leaf_energy_cap: 3.0
+  leaf_damage_penalty: -5.0        # per new leaf damage event
+  shield_penalty: -0.5             # per step in which the safety shield replaced the action
+  fail_penalty: -40.0              # EVERY failure (RL phase or scripted move), once
+  contact_penalty: -10.0           # on top of fail_penalty
+  plant_damage_penalty: -20.0      # on top: leaf uprooted, plant / other fruit hit, fruit knocked off
+  harvest_fail_penalty: 0.0        # (covered by fail_penalty)
+  drop_penalty: -10.0              # on top: fruit dropped / missed the crate
+  timeout_penalty: 0.0             # (covered by fail_penalty)
+  phase_bonus: 5.0
+  grasp_bonus: 10.0
+  detach_bonus: 10.0
+  place_reward: 60.0               # per fruit in the crate (was 40)
+  success_bonus: 30.0              # every target placed and the arm back in the default posture (was 0)
+policy:
+  residual_scale_pos: 0.5
+  residual_scale_rot: 0.5
+  progress_min: 0.25               # progress floor (was 0.4): the policy may slow down more in front of leaves
+  target_gate: [0.04, 0.10]        # residual fades out over the last 10 -> 4 cm before T2 (a later gate, 6 -> 2 cm, was
+                                   # tried in v6: the residual then pushed the closed jaws off the line at the fruit ->
+                                   # fruit_hit / route_blocked in the line phase during training)
+  approach_speed_scale: 1.4        # [v6] free-space phases faster (the governor slows the hand near every fruit)
+  line_speed_scale: 0.7            # along the line T1 -> T2 (inside the leaves)
+  retreat_speed_scale: 0.5         # [v6] pull-out through the leaves (0.25 m/s): the leaf guard can still react
+  lift_speed_scale: 1.0
+  carry_speed_scale: 1.4           # [USER v5 / v6] transport to the basket, faster (0.6 -> 1.0 -> 1.4)
+  residual_phases: [approach, line]   # [v6] phases in which the residual policy acts (carry phases: reference only)
+  residual_stall_steps: 60         # [v6] no progress along the route for 1.2 s -> residual off for this phase
+  residual_shield_limit: 3         #      safety shield interventions per phase before the residual is switched off
+  carry_slew: 0.15                 # max change of the executed action per 20 ms while carrying (was 0.08)
+  # [v6] tip speed limit near every perceived fruit (m/s): near_speed at <= near_dist, free_speed at >= free_dist
+  fruit_governor: {enabled: true, near_dist: 0.02, free_dist: 0.25, near_speed: 0.06, free_speed: 0.60}
+  wrist_force_scale: 20.0
+train:
+  timesteps: 60000
+  n_envs: 2
+  eval_freq: 10000
+  eval_episodes: 10                # VALIDATION seeds (checkpoint selection); final numbers use other seeds (scripts/eval_*)
+  eval_seed: 777000

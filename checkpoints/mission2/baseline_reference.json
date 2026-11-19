@@ -1,0 +1,22 @@
+{
+ "success_rate": 0.6666666666666666,
+ "fruit_rate": 0.75,
+ "mean_return": 125.919103320087,
+ "s_per_fruit": 31.99651592566497,
+ "failures": [
+  "leaf_uprooted@retreat",
+  "",
+  "",
+  "fruit_dropped@lift",
+  "",
+  ""
+ ],
+ "seeds": [
+  787000,
+  787001,
+  787002,
+  787003,
+  787004,
+  787005
+ ]
+}

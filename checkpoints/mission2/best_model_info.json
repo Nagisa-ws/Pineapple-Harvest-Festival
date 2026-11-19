@@ -1,0 +1,37 @@
+{
+ "timesteps": 240000,
+ "success_rate": 0.8333333333333334,
+ "fruit_rate": 0.8333333333333334,
+ "mean_return": 198.93412763101412,
+ "s_per_fruit": 28.302468216998694,
+ "failures": [
+  "",
+  "",
+  "",
+  "fruit_dropped@lift",
+  "",
+  ""
+ ],
+ "validation_seeds": [
+  787000,
+  787001,
+  787002,
+  787003,
+  787004,
+  787005
+ ],
+ "reference_baseline": {
+  "success_rate": 0.6666666666666666,
+  "fruit_rate": 0.75,
+  "mean_return": 125.919103320087,
+  "s_per_fruit": 31.99651592566497,
+  "failures": [
+   "leaf_uprooted@retreat",
+   "",
+   "",
+   "fruit_dropped@lift",
+   "",
+   ""
+  ]
+ }
+}
