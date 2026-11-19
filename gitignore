@@ -1,0 +1,24 @@
+# Python cache and build files (recreated automatically)
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+mujoco_env/
+
+# MuJoCo warning log
+MUJOCO_LOG.TXT
+
+# Private working folders (not for the repository)
+zzz_*/
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.Zone.Identifier
