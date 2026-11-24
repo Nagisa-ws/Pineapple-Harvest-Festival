@@ -1201,10 +1201,13 @@ class HarvestEnv(gym.Env):
             return a
         d0, d1 = float(gv.get("near_dist", 0.02)), float(gv.get("free_dist", 0.25))
         v0, v1 = float(gv.get("near_speed", 0.06)), float(gv.get("free_speed", 2.5))
+        k = self._carry_gain()
+        if k > 1.0:
+            v1 = float(gv.get("carry_free_speed", v1))
         v = v0 + (v1 - v0) * float(np.clip((d - d0) / max(d1 - d0, 1e-6), 0.0, 1.0))
         # a Cartesian action a moves the TARGET a * max_pos_delta ahead of the hand; the joint servos (kp / kv =
         # servo_rate 1/s) then follow at a * max_pos_delta * servo_rate (measured: a = 1 -> 0.5 m/s)
-        a_max = v / (self.arm.max_pos_delta * float(self.cfg["control"].get("servo_rate", 10.0)))
+        a_max = v / (self.arm.max_pos_delta * k * float(self.cfg["control"].get("servo_rate", 10.0)))
         n = float(np.linalg.norm(a[:3]))
         if n > a_max:
             a = np.array(a, float)
@@ -1995,6 +1998,10 @@ class HarvestEnv(gym.Env):
             self._event(f"residual policy off for the rest of '{PHASES[self.phase]}' "
                         f"({'no progress' if stalled else 'safety shield'}): reference controller alone")
 
+    def _carry_gain(self) -> float:
+        """Hand speed multiplier: larger than 1 only while the fruit is carried to the crate (transport phase)."""
+        return float(self.cfg["policy"].get("carry_pos_gain", 1.0)) if self.phase == PHASE_ID["transport"] else 1.0
+    
     def _compose(self, a_rl):
         ref = self._ref_action
         # [v6] the residual acts only where it can matter: on the way to the fruit (approach, line). With the fruit in
@@ -2161,7 +2168,9 @@ class HarvestEnv(gym.Env):
             slew = float(self.cfg.get("policy", {}).get("carry_slew", 0.08))
             a = self._prev_action + np.clip(a - self._prev_action, -slew, slew)
         tq0 = np.array(self.arm.target_quat, float).copy()
+        self.arm.pos_gain = self._carry_gain()
         q_cmd, ik_info = self.arm.command(a)
+        self.arm.pos_gain = 1.0
         self._shield_step = False
         self._q_hist.append(self.sim.q_arm().copy())
         if len(self._q_hist) > 150:
@@ -2519,7 +2528,7 @@ class HarvestEnv(gym.Env):
                  self.carry_speed if self.phase == 4 else
                  float(ps.get("line_speed_scale", 0.3)) if self.phase == 1 else float(ps.get("approach_speed_scale", 0.4)))
         self._ref_action = self._governed(self.reference.act(tcp, sim.tcp_quat(), self.arm.target_quat, self.route,
-                                                             self.arm.max_pos_delta, self.arm.max_rot_delta, speed))
+                                                             self.arm.max_pos_delta * self._carry_gain(), self.arm.max_rot_delta, speed))
         obs[S["ref_action"]] = self._ref_action
         return obs.astype(np.float32)
 

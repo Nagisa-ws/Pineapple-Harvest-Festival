@@ -15,7 +15,7 @@ robot:
   # DEFAULT posture of every session (start and finish), fitted to the user's picture: upper arm leaning 17 deg
   # forward, forearm hanging down, wrist low, closed gripper pointing horizontally forward with the jaws side by side.
   # Joint 1 (pan) is set per scene by default_pan_deg (0 = the arm's own forward = -x of the base frame).
-  default_q: [0.0, -1.27, 2.76, 1.658, -1.5708, 0.0]   # [USER picture]
+  default_q: [0.0, -1.55, 2.70, 2.609, -1.5708, 0.0]   # [USER picture]
   default_pan_deg: 0.0
 
 gripper:                            # U-jaw parallel gripper on the slider (user's ur10e_eval.xml / robot_gripper_v2) [USER]

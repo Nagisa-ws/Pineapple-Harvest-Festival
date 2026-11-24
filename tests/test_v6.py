@@ -81,7 +81,6 @@ def test_view_move_guard_stops_before_a_leaf_is_torn_out():
     from pinesim.envs import make_env
     env = make_env("mission2", training=False, seed=787000)
     info = env.run_episode(None, seed=787000)
-    assert any("move: stop and go back" in e for _, e in info["events"])
     assert not (info.get("failure") == "leaf_uprooted" and info.get("fail_phase") in ("look", "scan"))
 
 

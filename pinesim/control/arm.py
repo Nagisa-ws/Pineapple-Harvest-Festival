@@ -235,6 +235,7 @@ class Arm:
         self.checker.finger_bodies = self.finger_body_ids | {sim.housing_body}
         self.checker.set_self_pairs(sim.m, float(c["validation"].get("self_margin", 0.01)))
         self.max_pos_delta = float(c["max_pos_delta"])
+        self.pos_gain = 1.0
         self.max_rot_delta = float(c["max_rot_delta"])
         self.max_joint_delta = float(c["max_joint_delta"])
         self.orient_lead = np.deg2rad(float(c["max_orient_lead_deg"]))
@@ -252,7 +253,7 @@ class Arm:
         quat = integrate_quat(base_q, a[3:] * self.max_rot_delta)
         quat = limit_quat_deviation(quat, actual, self.orient_lead + self.max_rot_delta)
         q_now = sim.q_arm()
-        q_t, info = self.ik.solve(sim.d.qpos, sim.tcp_pos + a[:3] * self.max_pos_delta, quat)
+        q_t, info = self.ik.solve(sim.d.qpos, sim.tcp_pos + a[:3] * self.max_pos_delta * self.pos_gain, quat)
         dq = q_t - q_now
         big = float(np.max(np.abs(dq)))
         if big > self.max_joint_delta:
@@ -281,7 +282,7 @@ class Arm:
 
     def tcp_for_camera(self, cam_pos, view_dir, x_hint=(1.0, 0.0, 0.0)):
         """TCP pose that puts the wrist camera at cam_pos looking along view_dir (camera axis = tool z)."""
-        q = tool_quat(view_dir, x_hint)
+        q = quat_mul(tool_quat(view_dir, x_hint), np.array([0.0, 0.0, 0.0, 1.0]))
         R = quat2mat(q)
         cp = np.asarray(self.cfg["camera"]["pos_in_tool"], float)
         tcp_local = np.array([0.0, 0.0, self.sim.tcp_z])
@@ -316,7 +317,17 @@ class Arm:
             cost = float(np.sum((q - seeds[0][sim.arm_qadr]) ** 2))
             if best is None or cost < best[1]:
                 best = (q, cost)
-        return (best[0], True) if best is not None else (None, False)
+        return (self.nearest_equivalent(best[0]), True) if best is not None else (None, False)
+
+    def nearest_equivalent(self, q, q_ref = None, margin: float = 0.10):
+        q = np.array(q, float)
+        ref = self.sim.q_arm() if q_ref is None else np.asarray(q_ref, float)
+        lim = self.sim.arm_range
+        for j in (5, ):
+            v = q[j] + 2.0*np.pi*np.round((ref[j]-q[j])/(2.0*np.pi))
+            if lim[j, 0] +margin <= v <= lim[j, 1] - margin:
+                q[j] = v
+        return q
 
     def joint_path(self, q_from, q_to, max_step: float = 0.04) -> np.ndarray:
         n = int(np.ceil(np.max(np.abs(np.asarray(q_to) - np.asarray(q_from))) / max_step)) + 1

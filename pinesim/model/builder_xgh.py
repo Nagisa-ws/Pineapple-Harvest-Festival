@@ -187,7 +187,7 @@ def gripper_xml_u(cfg: dict, detail: bool, ind: str) -> str:
          f'  <site name="grip_site" pos="0 0 {_f(g.get("grip_z", 0.262))}" size="0.004" rgba="1 1 0 1" group="4"/>',
          '  <site name="palm_front" pos="0 0 0.100" size="0.004" rgba="0 1 0 1"/>',
          f'  <geom name="wrist_camera_body" class="link_geom" type="box" material="black" size="0.018 0.012 0.012" pos="{_f(cp[0])} {_f(cp[1])} {_f(cp[2] - 0.013)}"/>',
-         f'  <camera name="wrist_cam" pos="{_vec(cp)}" xyaxes="-1 0 0 0 1 0" fovy="{_f(cam["fov_vertical_deg"])}"/>',
+         f'  <camera name="wrist_cam" pos="{_vec(cp)}" xyaxes="1 0 0 0 -1 0" fovy="{_f(cam["fov_vertical_deg"])}"/>',
          f'  <site name="cam_site" pos="{_vec(cp)}" size="0.003" rgba="0 0 1 1"/>']
     for side, s, axis in (("left", 1, "1 0 0"), ("right", -1, "-1 0 0")):
         L += [f'  <body name="finger_{side}" gravcomp="1">',

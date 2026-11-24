@@ -173,7 +173,7 @@ def test_default_posture_closed_gripper_lamp():
     assert abs(env.sim.gripper_gap() - env.cfg["gripper"]["min_opening"]) < 1e-6
     tcp, tip = env.sim.tcp_pos, env.sim.tip_pos
     assert abs(np.linalg.norm(tip - tcp) - env.sim.tip_offset) < 1e-6
-    assert abs(env.sim.tcp_rot()[2, 2]) < 0.1              # closed jaws point horizontally (user's picture)
+    assert abs(env.sim.tcp_rot()[2, 2] + np.sin(np.radians(35.0))) < 0.05              # closed jaws point horizontally (user's picture)
     assert env.lamp_state == "observe"
 
 

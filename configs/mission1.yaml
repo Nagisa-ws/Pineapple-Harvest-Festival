@@ -17,7 +17,7 @@ task:
   # Touching / bending leaves does NOT end it (penalised, the arm keeps avoiding leaves).
 planning:
   # scripted joint moves (survey, look, return): trapezoidal speed profile, slower near every perceived fruit [v6]
-  joint_speed_per_step: 0.040      # rad per 20 ms of pan / lift in free space (2.0 rad/s; UR10e limit 2.09 rad/s)
+  joint_speed_per_step: 0.0418      # rad per 20 ms of pan / lift in free space (2.0 rad/s; UR10e limit 2.09 rad/s)
   joint_speed_ratio: [1.0, 1.0, 1.5, 1.5, 1.5, 1.5]   # elbow / wrists may turn 1.5x faster (UR10e 3.14 rad/s)
   joint_speed_near_fruit: 0.012    # rad per 20 ms when the arm is within fruit_slow_dist of a perceived fruit / crown
   joint_accel_per_step2: 0.003     # rad per (20 ms)^2 (7.5 rad/s^2)
@@ -129,13 +129,14 @@ policy:
   line_speed_scale: 0.7            # along the line T1 -> T2 (inside the leaves)
   retreat_speed_scale: 0.5         # [v6] pull-out through the leaves (0.25 m/s): the leaf guard can still react
   lift_speed_scale: 1.0
+  carry_pos_gain: 2.0
   carry_speed_scale: 1.4           # [USER v5 / v6] transport to the basket, faster (0.6 -> 1.0 -> 1.4)
   residual_phases: [approach, line]   # [v6] phases in which the residual policy acts (carry phases: reference only)
   residual_stall_steps: 60         # [v6] no progress along the route for 1.2 s -> residual off for this phase
   residual_shield_limit: 3         #      safety shield interventions per phase before the residual is switched off
   carry_slew: 0.15                 # max change of the executed action per 20 ms while carrying (was 0.08)
   # [v6] tip speed limit near every perceived fruit (m/s): near_speed at <= near_dist, free_speed at >= free_dist
-  fruit_governor: {enabled: true, near_dist: 0.02, free_dist: 0.25, near_speed: 0.06, free_speed: 0.60}
+  fruit_governor: {enabled: true, near_dist: 0.02, free_dist: 0.25, near_speed: 0.06, free_speed: 0.60, carry_free_speed: 1.0}
   wrist_force_scale: 20.0
 train:
   timesteps: 60000
