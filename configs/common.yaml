@@ -146,6 +146,8 @@ plant:                              # procedural pineapple (Mission 4/5 generato
     tension_damping: 40.0
     break_torque_range: [0.8, 2.0]       # N m twist torque at which the stem snaps (-> 46..115 deg of twist)
     break_force_range: [60.0, 120.0]     # N weld force beyond the resting load (pull-out / knock)
+    bend_yield_torque: 5.0               # N m [PROV]: above this bending moment the stem kinks (and stays bent)
+    break_bend_deg_range: [35.0, 50.0]   # deg [USER]: kink angle at which the stem tears off (pluck harvest)
   levels:                                # curriculum difficulty (keys override the ranges above)
     - {name: sparse, rosette_count: [5, 7], length_range: [0.45, 0.72], elevation_deg_range: [40, 70], p_block: 0.0, max_per_side: 1, p_all_sides: 0.0, stiffness_range: [1.0, 4.0]}
     - {name: medium, rosette_count: [7, 10], length_range: [0.45, 0.78], elevation_deg_range: [45, 75], p_block: 0.25, max_per_side: 1, p_all_sides: 0.0, stiffness_range: [1.0, 6.0]}

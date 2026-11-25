@@ -324,6 +324,9 @@ class PlantField:
         nid = lambda t, n: mujoco.mj_name2id(m, t, n)
         B, G, J, E = mujoco.mjtObj.mjOBJ_BODY, mujoco.mjtObj.mjOBJ_GEOM, mujoco.mjtObj.mjOBJ_JOINT, mujoco.mjtObj.mjOBJ_EQUALITY
         self.slots = []
+        # bending of the stem (set by Sim from plant.stem): above `bend_yield` (N m) the stem kinks and stays bent;
+        # a kink beyond the plant's own angle (drawn from `bend_break_range`, rad) tears the fruit off [pluck]
+        self.bend_yield, self.bend_break_range = None, None
         i = 0
         while nid(B, f"plant{i}") >= 0:
             s = dict(plant_body=nid(B, f"plant{i}"), fruit_body=nid(B, f"fruit{i}"), stalk=nid(G, f"stalk{i}"),
@@ -335,7 +338,9 @@ class PlantField:
             s["stem_qadr"] = np.array([m.jnt_qposadr[j] for j in sj], dtype=int)
             s["stem_dadr"] = np.array([m.jnt_dofadr[j] for j in sj], dtype=int)
             s["k_twist"] = float(m.jnt_stiffness[sj[0]])
+            s["k_bend"] = float(m.jnt_stiffness[sj[1]])
             s["k_pull"] = float(m.jnt_stiffness[sj[3]])
+            s["break_bend"] = np.inf
             s["rest_ext"] = 0.0
             jf = nid(J, f"fruit{i}_free")
             s["qadr"], s["dadr"] = int(m.jnt_qposadr[jf]), int(m.jnt_dofadr[jf])
@@ -495,6 +500,17 @@ class PlantField:
         data.eq_active[s["eq"]] = 1
         s["detached"] = False
 
+        m.qpos_spring[s["stem_qadr"][1:3]] = 0.0                      # no kink
+        lay = s["layout"]
+        if self.bend_break_range is not None and lay is not None:
+            # the plant's own value, derived from its other stem properties: no extra draw from the scene's random
+            # stream, so existing fields and seeds stay exactly as they were
+            lo, hi = self.bend_break_range
+            h = (lay.break_torque * 7919.0 + lay.break_force * 104.729 + lay.fruit_mass * 1299.709) % 1.0
+            s["break_bend"] = float(lo + (hi - lo) * h)
+        else:
+            s["break_bend"] = np.inf 
+
     # ------------------------------------------------------------------ stem
     def stem_load(self, i: int, data: mujoco.MjData):
         """(weld force (3,), stem torque (3,)) - torque = torsion spring k * twist angle about the stalk axis plus the
@@ -505,13 +521,34 @@ class PlantField:
         mask = (data.efc_type == mujoco.mjtConstraint.mjCNSTR_EQUALITY) & (data.efc_id == s["eq"])
         f = data.efc_force[mask]
         force = f[:3].copy() if f.shape[0] >= 3 else np.zeros(3)
-        th = data.qpos[s["stem_qadr"][:3]]
+        th = data.qpos[s["stem_qadr"][:3]] - self.m.qpos_spring[s["stem_qadr"][:3]]
         k = self.m.jnt_stiffness[[self.m.dof_jntid[a] for a in s["stem_dadr"][:3]]]
         return force, np.array([k[1] * th[1], k[2] * th[2], k[0] * th[0]])
 
     def twist_torque(self, i: int, data) -> float:
         s = self.slots[i]
         return float(abs(s["k_twist"] * data.qpos[s["stem_qadr"][0]]))
+
+
+    def bend_angle(self, i: int, data) -> float:
+        """Bend of the stem at the fruit base (rad), elastic part + kink."""
+        a = self.slots[i]["stem_qadr"][1:3]
+        return float(np.hypot(data.qpos[a[0]], data.qpos[a[1]]))
+
+    def update_stems(self, data: mujoco.MjData):
+        """Kinking of the stems, once per control step: a bending moment above `bend_yield` is not carried
+        elastically - the stem gives way and keeps the bend (the spring reference follows the joint)."""
+        if not self.bend_yield:
+            return
+        m = self.m
+        for s in self.slots:
+            if s["layout"] is None or s["detached"] or s["harvested"]:
+                continue
+            a = s["stem_qadr"][1:3]
+            e = data.qpos[a] - m.qpos_spring[a]
+            n, lim = float(np.hypot(e[0], e[1])), self.bend_yield / s["k_bend"]
+            if n > lim:
+                m.qpos_spring[a] = data.qpos[a] - e * (lim / n)
 
     def record_rest_load(self, i: int, data: mujoco.MjData):
         s = self.slots[i]
@@ -532,12 +569,13 @@ class PlantField:
         s = self.slots[i]
         if s["detached"] or s["layout"] is None:
             return False, 0.0, 0.0
-        # the stalk snaps in TENSION (pull along its axis) or TORSION (twist); lateral pushes only bend it.
-        # Both are read from the stem springs (smooth), not from instantaneous constraint forces (contact spikes).
+        # the stalk snaps in TENSION (pull along its axis), TORSION (twist) or when it is KINKED beyond the plant's
+        # own bend angle (pluck); small lateral pushes only bend it.
+        # All are read from the stem springs / joints (smooth), not from instantaneous constraint forces.
         fe = self.pull_force(i, data)
         te = self.twist_torque(i, data)
         lay = s["layout"]
-        return (fe > lay.break_force or te > lay.break_torque), fe, te
+        return (fe > lay.break_force or te > lay.break_torque or self.bend_angle(i, data) > s["break_bend"]), fe, te
 
     def detach(self, i: int, data: mujoco.MjData):
         m, s = self.m, self.slots[i]

@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import numpy as np
 
-from pinesim.config import PROJECT_ROOT
+from pinesim.config import HARVEST_METHODS, PROJECT_ROOT, choose_harvest_method
 from pinesim.envs import make_env
 from pinesim.rl.policy import load_policy
 from pinesim.viz.xgh_recorder import XghRecorder, export_html
@@ -43,12 +43,16 @@ def main():
     ap.add_argument("--record-failures", action="store_true", help="re-run and record every failed seed afterwards")
     ap.add_argument("--max-failure-html", type=int, default=3)
     ap.add_argument("--keep-recordings", action="store_true", help="keep rec_<seed>.npz next to the HTML")
+    ap.add_argument("--harvest", choices=HARVEST_METHODS, default=None,
+                    help="how the fruit is taken off the stalk (asked on the terminal when omitted; default harvest.method)")
     a = ap.parse_args()
+    harvest = choose_harvest_method(a.harvest, a.mission)
+    print(f"harvest method: {harvest}")
     policy, desc = load_policy(onnx=a.onnx)
     tag = a.tag or ("reference" if policy is None else Path(a.onnx).stem)
     out = PROJECT_ROOT / a.out_root / f"{a.mission}_{tag}"
     out.mkdir(parents=True, exist_ok=True)
-    env = make_env(a.mission, training=False, seed=a.seeds[0], overrides={"task": {"mode": "platform_detail"}})
+    env = make_env(a.mission, training=False, seed=a.seeds[0], overrides={"task": {"mode": "platform_detail"}, "harvest": {"method": harvest}})
     rows, htmls, recorded = [], [], set()
 
     def export(rec, row, seed, suffix=""):
@@ -110,7 +114,7 @@ def main():
     fr = sum(r["n_placed"] for r in rows)
     ft = sum(r["n_targets"] for r in rows)
     est = [t["est_error"] for r in rows for t in r["targets"] if t.get("est_error") == t.get("est_error")]
-    summ = dict(mission=a.mission, scene="platform_detail (realistic)", policy=desc, n=n, success=k, success_rate=k / max(n, 1),
+    summ = dict(mission=a.mission, scene="platform_detail (realistic)", policy=desc, harvest_method=harvest, n=n, success=k, success_rate=k / max(n, 1),
                 fruits_placed=fr, fruits_total=ft, fruit_rate=fr / max(ft, 1),
                 failures=dict(Counter(r["failure"] for r in rows if not r["success"])),
                 leaf_damage_total=int(sum(r["leaf_damage"] for r in rows)),

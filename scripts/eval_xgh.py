@@ -34,7 +34,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import mujoco
 import numpy as np
 
-from pinesim.config import PROJECT_ROOT
+from pinesim.config import HARVEST_METHODS, PROJECT_ROOT, choose_harvest_method
 from pinesim.envs.xgh_env import XghEvalEnv
 from pinesim.rl.policy import load_policy
 from pinesim.viz.xgh_recorder import CornerVideo, XghRecorder, export_html
@@ -137,8 +137,14 @@ def main():
     ap.add_argument("--no-scenery", action="store_true", help="HTML without dome / widened soil / rocks / trees / hut")
     ap.add_argument("--edge-gap", type=float, default=None, help="distance (m) between the edge of the harvested bed "
                     "and the neighbour beds (default: field.side_rows.edge_gap in configs/common.yaml; 0 = no neighbour beds)")
+    ap.add_argument("--harvest", choices=HARVEST_METHODS, default=None,
+                    help="how the fruit is taken off the stalk (asked on the terminal when omitted; default harvest.method)")    
     a = ap.parse_args()
     over = {}
+    if not a.html_only:
+        harvest = choose_harvest_method(a.harvest, "mission3")
+        over["harvest"] = {"method": harvest}
+        print(f"harvest method: {harvest}")
     if a.plants_per_row:
         over["eval_field"] = {"plants_per_row": int(a.plants_per_row)}
     if a.section:
@@ -194,7 +200,7 @@ def main():
     if vid is not None:
         vid.close()
     tg = info.get("targets", [])
-    res = dict(policy=desc, seed=a.seed, field_seed=int(env.cfg["eval_field"]["seed"]),
+    res = dict(policy=desc, harvest_method=harvest, seed=a.seed, field_seed=int(env.cfg["eval_field"]["seed"]),
                n_plants=env.sim.meta["n_plants"], n_placed=int(info["n_placed"]),
                n_targets=int(info["n_targets"]), failure=info.get("failure"), termination=info.get("termination_reason"),
                stops=info.get("stops"), vehicle_travel_m=info.get("vehicle_travel"), drift_max_m=info.get("vehicle_drift_max"),

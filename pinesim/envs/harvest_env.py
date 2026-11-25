@@ -78,6 +78,8 @@ class TargetRecord:
     detached: bool = False
     placed: bool = False
     twist_deg: float = 0.0
+    pluck_deg: float = 0.0            # tilt of the hand at which the stem tore off (harvest.method = pluck)
+    method: str = "twist"             # how this fruit was taken off the stalk: twist | pluck | pull    
     stem_force: float = 0.0
     stem_torque: float = 0.0
     advance_cm: float = 0.0
@@ -1425,13 +1427,13 @@ class HarvestEnv(gym.Env):
             self.rec.regrips = n + 1
         return None
 
-    def _twist_to(self, pivot, gp, q0, sign: float, th: float, ms: float | None = None) -> bool:
+    def _twist_to(self, pivot, gp, q0, sign: float, th: float, ms: float | None = None, label: str = "twist") -> bool:
         """One control step of the hand toward the twist angle th (rad) about the fruit axis through `pivot`."""
         Rz = quat_axis(self._twist_u, sign * th)
         Rm = np.zeros(9)
         mujoco.mju_quat2Mat(Rm, Rz)
         self.arm.servo_to(pivot + Rm.reshape(3, 3) @ (gp - pivot), quat_mul(Rz, q0), max_joint_step=ms)
-        return self._sim(1, "twist")
+        return self._sim(1, label)
 
     def _grasp_and_twist(self) -> tuple[float, str | None]:
         """Grip, then TWIST the fruit about its axis until the stem snaps. Twisting swings the whole hand around the
@@ -1475,6 +1477,14 @@ class HarvestEnv(gym.Env):
         step = np.radians(float(hc.get("twist_step_deg", 3.0)))
         back = np.radians(float(hc.get("untwist_step_deg", 2.4)))
         tmax = np.radians(float(hc.get("twist_max_deg", 120.0)))
+        if str(hc.get("method", "twist")) == "pluck":
+            broke, fail = self._pluck(pivot, gp, q0)
+            if fail is not None:
+                return bonus, fail
+            if broke:
+                return bonus + self._w("detach_bonus", 10.0), None
+            self._event("pluck did not take the fruit off: twisting instead")
+            self._twist_u = np.asarray(getattr(self.plan.fruit, "axis", np.array([0.0, 0.0, 1.0])), float)        
         with self._compute("twist_plan"):
             options = self._twist_options(gp, q0, tmax, step)
         if not options:
@@ -1572,6 +1582,137 @@ class HarvestEnv(gym.Env):
                 bonus += self._w("detach_bonus", 10.0)
         return bonus, None          # not broken yet: the pull-out (retreat) may still break it
 
+    def _pluck_options(self, base, gp, q0, ang) -> list:
+        """[(tilt axis (unit, world), feasible angle)] for plucking, best first. The fruit is tilted about a horizontal
+        axis through its base (the top of the stalk). Four directions are compared: about the jaw closing axis and
+        about the axis square to it, each both ways. Feasible = the same checks as for the twist (IK, contacts,
+        clearance to other fruits and to the stalk) plus the crown of the tilting fruit staying clear of the other
+        fruits the camera has seen."""
+        hc = self.cfg.get("harvest", {})
+        pc = hc.get("pluck", {})
+        u = self._twist_u
+        x = self.sim.tcp_rot()[:, 0]
+        x = x - np.dot(x, u) * u
+        x = x / (np.linalg.norm(x) + 1e-12)
+        op, orad = self._perceived_fruit_points(include_target=False)
+        f = self.plan.fruit
+        tip0 = base + u * (2.0 * float(getattr(f, "half_height", 0.09)) + float(pc.get("crown_length", 0.15)))
+        margin = float(pc.get("fruit_margin", 0.03))
+        out = []
+        for a in (x, np.cross(u, x)):
+            for sign, th_ok, key in self._twist_options(gp, q0, ang, 0.0, u=a, pivot=base, with_key=True):
+                if len(op):                              # crown tip of the tilting fruit vs the other fruits
+                    th, safe = 0.0, 0.0
+                    while th < th_ok:
+                        th = min(th_ok, th + np.radians(5.0))
+                        Rm = np.zeros(9)
+                        mujoco.mju_quat2Mat(Rm, quat_axis(a, sign * th))
+                        tip = base + Rm.reshape(3, 3) @ (tip0 - base)
+                        if np.min(np.linalg.norm(op - tip[None, :], axis=1) - orad) < margin:
+                            break
+                        safe = th
+                    th_ok = safe
+                if th_ok >= np.radians(float(pc.get("min_feasible_deg", 40.0))):
+                    out.append((a * sign, th_ok, (min(th_ok, ang),) + tuple(key[1:])))
+        out.sort(key=lambda o: o[2], reverse=True)
+        return [(o[0], o[1]) for o in out]
+
+    def _pluck(self, grip, gp, q0) -> tuple[bool, str | None]:
+        """PLUCK the gripped fruit like a tea shoot [USER]: tilt it about its base (the top of the stalk) by more than
+        45 deg while pulling it up along its own axis. The stem kinks and tears off at the plant's own bend angle
+        (plant.stem.break_bend_deg_range). Returns (stem broken, failure). Afterwards the hand is back in the grip
+        orientation, lifted clear of the stalk when the fruit came off - the same state the twist leaves behind."""
+        sim, fld, rec, slot = self.sim, self.sim.field, self.rec, self.target_slot
+        hc = self.cfg.get("harvest", {})
+        pc = hc.get("pluck", {})
+        u = np.asarray(getattr(self.plan.fruit, "axis", np.array([0.0, 0.0, 1.0])), float)
+        f = self.plan.fruit
+        # base of the fruit = top of the stalk, on the fruit axis below the grip (camera estimate of the fruit length)
+        base = grip + u * (float(np.dot(f.center - grip, u)) - float(getattr(f, "half_height", 0.09)))
+        ang = np.radians(float(pc.get("max_deg", 60.0)))
+        step = np.radians(float(pc.get("step_deg", 1.0)))
+        back = np.radians(float(pc.get("back_step_deg", 2.0)))
+        lift_tot = float(pc.get("lift", 0.015))
+        self._twist_u = u
+        with self._compute("twist_plan"):
+            options = self._pluck_options(base, gp, q0, ang)
+        if not options:
+            self._event("pluck infeasible (reach / neighbour fruit / stalk in the swing)")
+            return False, None
+        f_abort = float(hc.get("twist_leaf_force_abort", 200.0))
+        broke = False
+        for n_dir, (axis, th_max) in enumerate(options[:2]):
+            self._twist_u = axis
+            th, why = 0.0, "limit"
+            piv, hand = base, gp
+            hold = int(pc.get("hold_steps", 10))                     # the stem follows the hand with a short delay
+            while th < th_max or hold > 0:
+                if th >= th_max:
+                    hold -= 1
+                th = min(th_max, th + step)
+                up = u * (lift_tot * th / ang)                       # pulled up while it tilts
+                piv, hand = base + up, gp + up
+                if not self._twist_to(piv, hand, q0, 1.0, th, label="pluck"):
+                    return broke, self.failure
+                brk, fe, te = fld.check_break(slot, sim.d)
+                rec.stem_force, rec.stem_torque = max(rec.stem_force, fe), max(rec.stem_torque, te)
+                if brk:
+                    bend = np.degrees(fld.bend_angle(slot, sim.d))
+                    fld.detach(slot, sim.d)
+                    rec.detached, rec.pluck_deg, rec.method = True, float(np.degrees(th)), "pluck"
+                    self._event(f"stem tore off at tilt {np.degrees(th):.0f} deg (stem bent {bend:.0f} deg, F {fe:.0f} N, T {te:.2f} N m)")
+                    broke = True
+                    break
+                c = sim.classify_contacts(slot)
+                if c["pad_left"] < 0.5 and c["pad_right"] < 0.5:
+                    return False, "grip_slip"
+                if self._leaf_guard("twist_guard_frac"):
+                    why = f"leaf root bent {np.degrees(self._root_bend):.0f} deg"
+                    break
+                if c["leaf"] > f_abort:
+                    why = f"leaf force {c['leaf']:.0f} N"
+                    break
+            rec.pluck_deg = max(rec.pluck_deg, float(np.degrees(th)))
+            if not broke:
+                self._event(f"pluck tilt {np.degrees(th):.0f} deg stopped ({why}), stem not torn off"
+                            + (": trying another direction" if n_dir == 0 and len(options) > 1 else ""))
+            else:
+                for _ in range(int(hc.get("snap_settle_steps", 5))):
+                    if not self._twist_to(piv, hand, q0, 1.0, th, label="pluck"):
+                        return broke, self.failure
+                lift = u * float(pc.get("clear_lift", 0.06))          # clear of the stalk before turning back
+                n_l = int(hc.get("untwist_lift_steps", 10))
+                for k in range(n_l):
+                    if not self._twist_to(piv + lift * (k + 1) / n_l, hand + lift * (k + 1) / n_l, q0, 1.0, th, label="pluck"):
+                        return broke, self.failure
+                piv, hand = piv + lift, hand + lift
+            th0, ramp = th, np.radians(float(hc.get("untwist_ramp_deg", 25.0)))
+            while th > 0.0:                                          # back to the grip orientation, smooth start / stop
+                g = float(np.clip(th / ramp, 0.15, 1.0) * np.clip((th0 - th) / ramp + 0.3, 0.3, 1.0))
+                th = max(0.0, th - back * g)
+                if not broke:
+                    up = u * (lift_tot * th / ang)
+                    piv, hand = base + up, gp + up
+                if not self._twist_to(piv, hand, q0, 1.0, th, label="pluck"):
+                    return broke, self.failure
+                if broke:
+                    cf = self._carry_check()
+                    if cf:
+                        return broke, cf
+                else:
+                    brk, fe, te = fld.check_break(slot, sim.d)
+                    if brk:
+                        fld.detach(slot, sim.d)
+                        rec.detached, rec.method, broke = True, "pluck", True
+                        self._event(f"stem tore off while tilting back (F {fe:.0f} N, T {te:.2f} N m)")
+            for _ in range(6):
+                if not self._twist_to(piv, hand, q0, 1.0, 0.0, label="pluck"):
+                    return broke, self.failure
+            if broke:
+                break
+        self._twist_u = u
+        return broke, None
+    
     def _pull_up(self) -> str | None:
         """The twist could not snap the stem (leaves or the arm's reach stopped it): pull the fruit along its own
         axis, away from the stalk - the stalk snaps in tension - slowly and only a few centimetres [v6]. Pulling
@@ -1598,7 +1739,7 @@ class HarvestEnv(gym.Env):
             rec.stem_force, rec.stem_torque = max(rec.stem_force, fe), max(rec.stem_torque, te)
             if brk:
                 fld.detach(slot, sim.d)
-                rec.detached = True
+                rec.detached, rec.method = True, "pull"
                 self._event(f"stem broke during the axial pull (F {fe:.0f} N, T {te:.2f} N m)")
                 return None
             c = sim.classify_contacts(slot)
@@ -1606,7 +1747,7 @@ class HarvestEnv(gym.Env):
                 return "pull_slip"
         return None
 
-    def _twist_options(self, gp, q0, ang, step) -> list:
+    def _twist_options(self, gp, q0, ang, step, u=None, pivot=None, with_key: bool = False) -> list:
         """[(sign, feasible angle)] of the twist directions, best first. Feasible = IK, no self / environment
         contact along the swing; preference = reaches further (>= 100 deg counts as full), then sweeps fewer
         perceived leaves, then the larger wrist-singularity margin."""
@@ -1616,8 +1757,8 @@ class HarvestEnv(gym.Env):
         if len(lp):
             lp = lp[np.linalg.norm(lp - gp[None, :], axis=1) < 0.5]
         lr = np.full(len(lp), float(self.cfg["perception"].get("leaf_point_radius", 0.015)))
-        axis = getattr(self, "_twist_pivot", np.r_[self.plan.fruit.center[:2], gp[2]])
-        u = getattr(self, "_twist_u", np.array([0.0, 0.0, 1.0]))
+        axis = pivot if pivot is not None else getattr(self, "_twist_pivot", np.r_[self.plan.fruit.center[:2], gp[2]])
+        u = u if u is not None else getattr(self, "_twist_u", np.array([0.0, 0.0, 1.0]))
         # other perceived fruits / crowns: the swinging hand must stay clear of them (two neighbour fruits were
         # knocked off by the wrist during the twist in the zig-zag row, measured in Mission 3)
         op, orad = self._perceived_fruit_points(include_target=False)
@@ -1664,7 +1805,7 @@ class HarvestEnv(gym.Env):
                 intr = float(np.sum(np.clip(0.02 - clr, 0.0, None)))
             out.append((sign, th_ok, (min(th_ok, np.radians(100.0)), -intr, s_min)))
         out.sort(key=lambda o: o[2], reverse=True)
-        return [(o[0], o[1]) for o in out]
+        return out if with_key else [(o[0], o[1]) for o in out]
 
     def _twist_direction(self, gp, q0, ang, step) -> float:
         """Best feasible twist direction (kept for compatibility; see _twist_options)."""

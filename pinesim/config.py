@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import copy
+import os
+import sys
 from pathlib import Path
 
 import yaml
@@ -51,3 +53,21 @@ def get(cfg: dict, dotted: str, default=None):
             return default
         cur = cur[k]
     return cur
+
+HARVEST_METHODS = ("twist", "pluck")
+
+def choose_harvest_method(arg: str | None, mission: str = "mission1") -> str:
+    """How the fruit is taken off the stalk in an evaluation run, in this order: the --harvest option; the environment
+    variable PINESIM_HARVEST (for shell scripts that run unattended); a question on the terminal (only when a person
+    runs the script: tests and pipes get no question); harvest.method of the mission's configuration."""
+    default = str(load_config(mission).get("harvest", {}).get("method", "twist"))
+    if arg:
+        return arg
+    env = os.environ.get("PINESIM_HARVEST", "").strip().lower()
+    if env in HARVEST_METHODS:
+        return env
+    if sys.stdin is not None and sys.stdin.isatty() and sys.stdout.isatty():
+        ans = input(f"Harvest method?  [1] twist (twist, then lift)   [2] pluck (tilt > 45 deg while pulling up)   "
+                    f"Enter = {default}: ").strip().lower()
+        return {"1": "twist", "t": "twist", "twist": "twist", "2": "pluck", "p": "pluck", "pluck": "pluck"}.get(ans, default)
+    return default

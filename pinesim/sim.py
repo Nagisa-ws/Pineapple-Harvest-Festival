@@ -58,6 +58,10 @@ class Sim:
         else:
             self.field = PlantField(m)
         self.field.mute_on_detach = bool(cfg["plant"].get("mute_penetrating_leaves", False))
+        st = cfg["plant"].get("stem", {})
+        self.field.bend_yield = float(st["bend_yield_torque"]) if st.get("bend_yield_torque") else None
+        if st.get("break_bend_deg_range"):
+            self.field.bend_break_range = tuple(np.radians(st["break_bend_deg_range"]))        
         root = m.body_rootid
         self.robot_geom = np.zeros(m.ngeom, bool)
         arm_set = set(self.arm_body_ids)
@@ -163,6 +167,7 @@ class Sim:
         for _ in range(n_ctrl):
             for _ in range(self.n_substeps):
                 mujoco.mj_step(self.m, self.d)
+            self.field.update_stems(self.d)
             self._update_lamp()
             if callback is not None:
                 callback()

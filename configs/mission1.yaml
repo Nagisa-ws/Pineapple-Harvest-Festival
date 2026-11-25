@@ -55,6 +55,11 @@ harvest:
   advance_margin: 0.0              # extra advance beyond the estimated fruit axis (m)
   close_steps: 30                  # 0.6 s jaw closing (was 0.8)
   grasp_min_pad_force: 2.0         # N per jaw (servo current sensing)
+  method: twist                    # twist | pluck [USER]: how the gripped fruit is taken off the stalk
+  # pluck = tilt the fruit about its base by more than 45 deg while pulling it up (like a tea shoot); when no tilt
+  # direction is feasible or the stem does not tear off, the twist below is used instead
+  pluck: {max_deg: 70.0, step_deg: 1.0, back_step_deg: 2.0, hold_steps: 10, lift: 0.015, clear_lift: 0.06,
+          min_feasible_deg: 45.0, crown_length: 0.15, fruit_margin: 0.03}
   twist_step_deg: 1.6              # per 20 ms -> 80 deg/s (was 60)
   twist_max_deg: 125.0             # (was 150; the strongest stem snaps at 115 deg)
   twist_plan_step_deg: 9.0         # angular step of the feasibility check of the swing

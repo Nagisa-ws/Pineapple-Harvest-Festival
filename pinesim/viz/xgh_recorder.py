@@ -31,7 +31,7 @@ ASSETS = PROJECT_ROOT / "assets_xgh"
 CAMERA_NODES = {"corner": ("vehicle", "corner_cam"), "follow": ("vehicle", "follow"), "wrist": ("gripper_housing", "wrist_cam"),
                 "overview": ("world", "overview")}
 RIG_CAMERA_NODES = {"wrist": ("rig_head", "rig_cam")}
-HARVEST_LABELS = {"scan", "look", "open", "align", "advance", "approach", "line", "grasp", "twist", "retreat", "lift",
+HARVEST_LABELS = {"scan", "look", "open", "align", "advance", "approach", "line", "grasp", "twist", "pluck", "retreat", "lift",
                   "transport", "release", "verify", "return", "back_out", "rescue"}
 
 

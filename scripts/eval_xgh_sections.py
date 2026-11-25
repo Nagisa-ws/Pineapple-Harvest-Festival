@@ -24,6 +24,8 @@ sys.path.insert(0, str(ROOT))
 
 
 def run(a):
+    from pinesim.config import choose_harvest_method
+    harvest = choose_harvest_method(a.harvest, "mission3")          # asked once here, never by the section runs
     for k0 in a.sections:
         tag = f"{a.tag_prefix}_s{k0:03d}"
         if (OUT / tag / "result.json").exists() and not a.force:
@@ -35,6 +37,7 @@ def run(a):
             cmd += ["--edge-gap", str(a.edge_gap)]
         if a.no_html:
             cmd.append("--no-html")
+        cmd += ["--harvest", harvest]
         if a.onnx:
             cmd += ["--onnx", a.onnx]
         if a.video:
@@ -93,6 +96,7 @@ def main():
     ap.add_argument("--sections", type=int, nargs="*", default=list(range(0, 60, 10)))
     ap.add_argument("--size", type=int, default=10)
     ap.add_argument("--onnx", default=None)
+    ap.add_argument("--harvest", choices=["twist", "pluck"], default=None, help="default: harvest.method of the config")
     ap.add_argument("--seed", type=int, default=990000)
     ap.add_argument("--every", type=int, default=8)
     ap.add_argument("--tag-prefix", default="final")

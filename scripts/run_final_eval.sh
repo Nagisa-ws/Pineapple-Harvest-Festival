@@ -5,6 +5,7 @@
 set -e
 cd "$(dirname "$0")/.."
 export MUJOCO_GL=egl
+export PINESIM_HARVEST=${PINESIM_HARVEST:-twist}     # no question on the terminal in this unattended run
 N1=${1:-30}; N2=${2:-20}
 log() { echo "[$(date +%H:%M:%S)] $*"; }
 log "Mission 1 realistic: ONNX policy"
