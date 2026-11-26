@@ -123,3 +123,6 @@ train:
 sac:
   learning_starts: 800                 # [v5] short fine-tuning from Mission 2 (same observation meaning)
   critic_warmup_steps: 800
+
+scenery:
+  shadows: {enabled: true, sun: [3.0, 7.0, 9.0], intensity: 3.0, ambient: 0.6, map_size: 4096, bias: -0.0002}

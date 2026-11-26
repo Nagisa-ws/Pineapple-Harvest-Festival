@@ -396,6 +396,23 @@ def export_html(model: mujoco.MjModel, rec_path, out_html, frame_range=None, x_w
     mc.SetProperty("/Lights/AmbientLight/<object>", "intensity", 0.75)
     mc.SetProperty("/Lights/FillLight/<object>", "intensity", 0.9)
     x0 = float(vx[0])
+    sh = dict((scenery or {}).get("shadows") or {})
+    if sh.get("enabled", False):
+        # SUN with shadows [USER]: the directional "FillLight" is moved above the scene and told to cast shadows. Its
+        # shadow box is 10 m wide and follows the line light -> target, so the target is put at the middle of this
+        # part (a light's target is not part of the scene tree: its world matrix is written directly).
+        # Only meshes WITH normals can receive shadows: python scripts/add_gltf_normals.py (ground, soil disc, bed).
+        xm = 0.5 * (float(np.min(vx)) + float(np.max(vx)))
+        sun = np.asarray(sh.get("sun", [3.0, 7.0, 9.0]), float)
+        L = "/Lights/FillLight/<object>"
+        mc.SetProperty(L, "position", [xm + sun[0], sun[1], sun[2]])
+        mc.SetProperty(L, "target.matrixWorld.elements[12]", xm)
+        mc.SetProperty(L, "castShadow", True)
+        mc.SetProperty(L, "intensity", float(sh.get("intensity", 3.0)))
+        mc.SetProperty(L, "shadow.mapSize.width", float(sh.get("map_size", 4096)))
+        mc.SetProperty(L, "shadow.mapSize.height", float(sh.get("map_size", 4096)))
+        mc.SetProperty(L, "shadow.bias", float(sh.get("bias", -0.0002)))
+        mc.SetProperty("/Lights/AmbientLight/<object>", "intensity", float(sh.get("ambient", 0.6)))
     if has_vehicle:
         mc.SetCameraPose(np.array([x0 - 1.8, -3.4, 2.4]), np.array([x0 + 1.4, 0.0, 0.5]))
     elif mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "rig_head") >= 0:      # pretraining rig: close to the plant

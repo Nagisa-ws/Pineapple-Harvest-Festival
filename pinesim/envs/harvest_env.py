@@ -1598,8 +1598,9 @@ class HarvestEnv(gym.Env):
         f = self.plan.fruit
         tip0 = base + u * (2.0 * float(getattr(f, "half_height", 0.09)) + float(pc.get("crown_length", 0.15)))
         margin = float(pc.get("fruit_margin", 0.03))
+        pref = str(pc.get("direction", "auto"))                  # auto | side | forward [USER]
         out = []
-        for a in (x, np.cross(u, x)):
+        for a, name in ((x, "forward"), (np.cross(u, x), "side")):
             for sign, th_ok, key in self._twist_options(gp, q0, ang, 0.0, u=a, pivot=base, with_key=True):
                 if len(op):                              # crown tip of the tilting fruit vs the other fruits
                     th, safe = 0.0, 0.0
@@ -1613,9 +1614,10 @@ class HarvestEnv(gym.Env):
                         safe = th
                     th_ok = safe
                 if th_ok >= np.radians(float(pc.get("min_feasible_deg", 40.0))):
-                    out.append((a * sign, th_ok, (min(th_ok, ang),) + tuple(key[1:])))
+                    full = th_ok >= ang - 1e-6                   # the preferred direction wins when it reaches the full tilt
+                    out.append((a * sign, th_ok, (full, name == pref, min(th_ok, ang)) + tuple(key[1:]), name))
         out.sort(key=lambda o: o[2], reverse=True)
-        return [(o[0], o[1]) for o in out]
+        return [(o[0], o[1], o[3]) for o in out]
 
     def _pluck(self, grip, gp, q0) -> tuple[bool, str | None]:
         """PLUCK the gripped fruit like a tea shoot [USER]: tilt it about its base (the top of the stalk) by more than
@@ -1641,8 +1643,9 @@ class HarvestEnv(gym.Env):
             return False, None
         f_abort = float(hc.get("twist_leaf_force_abort", 200.0))
         broke = False
-        for n_dir, (axis, th_max) in enumerate(options[:2]):
+        for n_dir, (axis, th_max, name) in enumerate(options[:2]):
             self._twist_u = axis
+            self._event(f"pluck direction: {name}")
             th, why = 0.0, "limit"
             piv, hand = base, gp
             hold = int(pc.get("hold_steps", 10))                     # the stem follows the hand with a short delay
